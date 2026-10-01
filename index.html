@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Chill City" />
+  <meta name="theme-color" content="#0b0e1c" />
+  <title>Chill City</title>
+  <link rel="stylesheet" href="style.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <canvas id="scene" aria-label="Thành phố 3D về đêm"></canvas>
+
+  <div id="loading">
+    <div class="spinner"></div>
+    <p>Đang dựng thành phố…</p>
+  </div>
+
+  <header id="hud" class="fade">
+    <div class="brand">
+      <span class="dot"></span>
+      <span class="name">Chill City</span>
+      <span id="clock" class="clock"></span>
+    </div>
+  </header>
+
+  <nav id="panel" class="glass fade" aria-label="Điều khiển">
+    <div class="seg" role="group" aria-label="Thời gian">
+      <button data-time="0" title="Hoàng hôn (1)"><span class="ico">🌇</span><span class="lbl">Hoàng hôn</span></button>
+      <button data-time="1" title="Đêm (2)"><span class="ico">🌙</span><span class="lbl">Đêm</span></button>
+    </div>
+
+    <div class="rain-group">
+      <button id="btnRain" title="Mưa (R)"><span class="ico">🌧️</span><span class="lbl">Mưa</span></button>
+      <input id="rainAmt" type="range" min="0.15" max="1" step="0.05" value="0.65" aria-label="Cường độ mưa" />
+    </div>
+
+    <span class="sep"></span>
+
+    <button id="btnSound" title="Âm thanh (M)"><span class="ico">🔇</span><span class="lbl">Âm thanh</span></button>
+    <button id="btnAuto" title="Camera tự lượn (A)"><span class="ico">🎥</span><span class="lbl">Tự lượn</span></button>
+    <button id="btnView" title="Đổi góc nhìn (V)"><span class="ico">🏙️</span><span class="lbl" id="viewLabel">Toàn cảnh</span></button>
+    <button id="btnFull" title="Toàn màn hình (F)"><span class="ico">⛶</span></button>
+    <button id="btnHide" title="Ẩn giao diện (H)"><span class="ico">👁️</span></button>
+  </nav>
+
+  <div id="hint" class="fade">Kéo để xoay · Chụm hoặc cuộn để zoom · Chạm để hiện menu</div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
