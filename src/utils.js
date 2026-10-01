@@ -69,3 +69,77 @@ export const fogGLSL = /* glsl */ `
     return mix(col, uFogColor, clamp(f, 0.0, 1.0));
   }
 `;
+
+/**
+ * Texture atlas of Vietnamese shop signs: 2 columns x 8 rows (16 signs).
+ * Sign k lives in column k % 2, row floor(k / 2) counted from the top.
+ */
+export const SIGN_COLS = 2;
+export const SIGN_ROWS = 8;
+export function signAtlas() {
+  const W = 1024, H = 1024, cw = W / SIGN_COLS, ch = H / SIGN_ROWS;
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const g = c.getContext('2d');
+  const signs = [
+    ['PHỞ BÒ', 'GIA TRUYỀN', '#c62828', '#ffeb3b'],
+    ['CÀ PHÊ', 'MUỐI · SỮA ĐÁ', '#4e342e', '#ffcc80'],
+    ['TẠP HÓA', 'MINH TÂM', '#1565c0', '#ffffff'],
+    ['BÚN BÒ HUẾ', 'O XUÂN', '#2e7d32', '#ffee58'],
+    ['CƠM TẤM', 'SƯỜN BÌ CHẢ', '#ef6c00', '#ffffff'],
+    ['TRÀ SỮA', 'TRÂN CHÂU', '#ec407a', '#ffffff'],
+    ['TIỆM VÀNG', 'KIM THÀNH', '#b71c1c', '#ffd54f'],
+    ['SỬA XE', 'VÁ VỎ · THAY NHỚT', '#263238', '#4fc3f7'],
+    ['KARAOKE', 'NICE', '#6a1b9a', '#f8bbd0'],
+    ['NHÀ THUỐC', 'TÂM ĐỨC', '#00897b', '#ffffff'],
+    ['BÁNH MÌ', 'HUỲNH HOA', '#f9a825', '#b71c1c'],
+    ['LẨU NƯỚNG', 'BIA TƯƠI', '#d84315', '#fff59d'],
+    ['HỦ TIẾU', 'NAM VANG', '#0277bd', '#ffeb3b'],
+    ['SPA · NAIL', 'LINH', '#ad1457', '#ffffff'],
+    ['ĐIỆN THOẠI', 'MUA BÁN · SỬA CHỮA', '#283593', '#ffeb3b'],
+    ['BIA HƠI', 'HÀ NỘI', '#1b5e20', '#fff176'],
+  ];
+  const font = '"Arial Black", "Helvetica Neue", Arial, "Noto Sans", sans-serif';
+  signs.forEach(([title, sub, bg, fg], k) => {
+    const x = (k % SIGN_COLS) * cw, y = Math.floor(k / SIGN_COLS) * ch;
+    g.fillStyle = bg;
+    g.fillRect(x, y, cw, ch);
+    g.strokeStyle = fg;
+    g.lineWidth = 6;
+    g.strokeRect(x + 8, y + 8, cw - 16, ch - 16);
+    g.fillStyle = fg;
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.font = `900 58px ${font}`;
+    const tw = g.measureText(title).width;
+    const sx = Math.min(1, (cw - 40) / tw);
+    g.save();
+    g.translate(x + cw / 2, y + ch * 0.42);
+    g.scale(sx, 1);
+    g.fillText(title, 0, 0);
+    g.restore();
+    g.font = `700 22px ${font}`;
+    g.globalAlpha = 0.9;
+    g.fillText(sub, x + cw / 2, y + ch * 0.8);
+    g.globalAlpha = 1;
+  });
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  return { texture: tex, count: signs.length };
+}
+
+/** Points along a sagging wire between a and b (simple parabola). */
+export function sagPoints(a, b, sag, n) {
+  const pts = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    pts.push(new THREE.Vector3(
+      a.x + (b.x - a.x) * t,
+      a.y + (b.y - a.y) * t - sag * 4 * t * (1 - t),
+      a.z + (b.z - a.z) * t,
+    ));
+  }
+  return pts;
+}

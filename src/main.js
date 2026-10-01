@@ -20,7 +20,7 @@ const quality = {
   low: isTouch || (navigator.hardwareConcurrency || 8) <= 4,
   maxPR: isTouch ? 1.5 : 1.75,
 };
-quality.cars = quality.low ? 56 : 84;
+quality.traffic = quality.low ? { bikes: 440, cars: 40, buses: 5 } : { bikes: 700, cars: 60, buses: 8 };
 
 const loadingEl = document.getElementById('loading');
 const canvas = document.getElementById('scene');
@@ -48,7 +48,7 @@ const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerH
 // World
 // ---------------------------------------------------------------------------
 const city = createCity(quality);
-const traffic = createTraffic(quality.cars);
+const traffic = createTraffic(quality.traffic);
 const sky = createSky();
 const rain = createRain(quality);
 scene.add(sky.group, city.group, traffic.group, rain.group);
@@ -75,24 +75,24 @@ composer.addPass(new OutputPass());
 const C = (hex) => new THREE.Color(hex);
 const PRESET = [
   {
-    skyTop: C('#26336a'), horizon: C('#ff8a58'), skyBottom: C('#2a1e2c'),
-    sunColor: C('#ffa860'), lightColor: C('#ffb27a'), lightIntensity: 2.2,
-    skyAmb: C('#4a4878'), groundAmb: C('#3a2a2c'),
-    fogColor: C('#b8727a'), fogDensity: 0.0015,
-    cloudColor: C('#c86f66'), cloudAmt: 0.6,
+    skyTop: C('#3d5aa8'), horizon: C('#ffa45c'), skyBottom: C('#5a3a3a'),
+    sunColor: C('#ffb060'), lightColor: C('#ffc08a'), lightIntensity: 2.8,
+    skyAmb: C('#8c84b0'), groundAmb: C('#6a4a3c'),
+    fogColor: C('#e8a080'), fogDensity: 0.00105,
+    cloudColor: C('#ff9a78'), cloudAmt: 0.6,
     sunVis: 1, moonVis: 0, stars: 0,
-    windowLit: 0.2, windowGlow: 0.9, shop: 0.45, lamps: 0.45,
-    exposure: 1.0, bloom: 0.45,
+    windowLit: 0.32, windowGlow: 0.95, shop: 0.7, lamps: 0.6,
+    exposure: 1.1, bloom: 0.45,
   },
   {
-    skyTop: C('#02040c'), horizon: C('#1b2246'), skyBottom: C('#05060c'),
-    sunColor: C('#000000'), lightColor: C('#7f9cff'), lightIntensity: 0.5,
-    skyAmb: C('#141b36'), groundAmb: C('#07070c'),
-    fogColor: C('#121831'), fogDensity: 0.0026,
-    cloudColor: C('#1a2140'), cloudAmt: 0.35,
+    skyTop: C('#0b1238'), horizon: C('#4a3478'), skyBottom: C('#1a1228'),
+    sunColor: C('#000000'), lightColor: C('#9fb4ff'), lightIntensity: 0.7,
+    skyAmb: C('#3a3a6c'), groundAmb: C('#2a1a22'),
+    fogColor: C('#2c2550'), fogDensity: 0.0015,
+    cloudColor: C('#3a3266'), cloudAmt: 0.4,
     sunVis: 0, moonVis: 1, stars: 1,
-    windowLit: 0.46, windowGlow: 1.1, shop: 0.8, lamps: 1,
-    exposure: 1.05, bloom: 0.62,
+    windowLit: 0.62, windowGlow: 1.1, shop: 1, lamps: 1.15,
+    exposure: 1.15, bloom: 0.62,
   },
 ];
 const SUN_DIR = new THREE.Vector3(-0.55, 0.055, -0.83).normalize();
@@ -148,8 +148,8 @@ function computeEnv(t, r) {
 // ---------------------------------------------------------------------------
 // Settings & state
 // ---------------------------------------------------------------------------
-const STORE = 'chill-city-v1';
-const settings = { time: 1, rain: false, rainAmt: 0.65, auto: true, view: 0, sound: false };
+const STORE = 'chill-city-v2';
+const settings = { time: 0, rain: false, rainAmt: 0.65, auto: true, view: 1, sound: false };
 try { Object.assign(settings, JSON.parse(localStorage.getItem(STORE) || '{}'), { sound: false }); } catch (_) { /* ignore */ }
 const save = () => { try { localStorage.setItem(STORE, JSON.stringify(settings)); } catch (_) { /* ignore */ } };
 
@@ -170,7 +170,7 @@ const ambience = new Ambience();
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 controls.dampingFactor = 0.06;
-controls.minDistance = 20;
+controls.minDistance = 8;
 controls.maxDistance = 700;
 controls.maxPolarAngle = 1.45;
 controls.autoRotateSpeed = 0.35;
@@ -180,7 +180,7 @@ controls.target.set(0, 12, 0);
 
 const VIEWS = [
   { name: 'Toàn cảnh', kind: 'orbit', pos: new THREE.Vector3(250, 150, 270), target: new THREE.Vector3(0, 12, 0) },
-  { name: 'Tầng thấp', kind: 'orbit', pos: new THREE.Vector3(8, 52, 175), target: new THREE.Vector3(8, 22, 0) },
+  { name: 'Tầng thấp', kind: 'orbit', pos: new THREE.Vector3(128, 32, 178), target: new THREE.Vector3(128, 2, 100) },
   { name: 'Dạo phố', kind: 'cruise' },
   { name: 'Theo xe', kind: 'follow' },
 ];
@@ -206,7 +206,7 @@ const cruisePath = (() => {
 })();
 const cruiseLen = cruisePath.getLength();
 let cruiseS = 0;
-let followIdx = 7;
+let followIdx = 3;
 
 const tween = { active: false, t: 0, dur: 2.2, fromPos: new THREE.Vector3(), fromTarget: new THREE.Vector3(), toPos: new THREE.Vector3(), toTarget: new THREE.Vector3() };
 const camLook = new THREE.Vector3();
@@ -243,7 +243,7 @@ function applyView(idx, instant = false) {
   } else {
     controls.enabled = false;
     tween.active = false;
-    if (v.kind === 'follow') followIdx = (followIdx + 11) % traffic.count;
+    if (v.kind === 'follow') followIdx = (followIdx + 11) % traffic.bikeCount;
   }
   updateAutoBtn();
   save();
@@ -278,9 +278,18 @@ function updateCamera(dt) {
     camLook.lerp(tmpV2, camLook.distanceTo(tmpV2) > 60 ? 1 : k);
     camera.lookAt(camLook);
   } else {
-    traffic.carPose(followIdx, tmpV, tmpV2);
-    tmpV3.copy(tmpV).addScaledVector(tmpV2, -11).setY(4.6);
-    tmpV.addScaledVector(tmpV2, 9).setY(1.6);
+    let car = traffic.carPose(followIdx, tmpV, tmpV2);
+    // if our rider wanders to the quiet outskirts, hop onto someone downtown
+    if (Math.max(Math.abs(tmpV.x), Math.abs(tmpV.z)) > 170) {
+      for (let k = 0; k < 40; k++) {
+        const idx = Math.floor(Math.random() * traffic.bikeCount);
+        traffic.carPose(idx, tmpV, tmpV2);
+        if (Math.max(Math.abs(tmpV.x), Math.abs(tmpV.z)) < 90) { followIdx = idx; break; }
+      }
+      car = traffic.carPose(followIdx, tmpV, tmpV2);
+    }
+    tmpV3.copy(tmpV).addScaledVector(tmpV2, -(3 + car.len * 2)).setY(2.6 + car.len * 0.4);
+    tmpV.addScaledVector(tmpV2, 8).setY(1.4);
     const far = camera.position.distanceTo(tmpV3) > 80;
     camera.position.lerp(tmpV3, far ? 1 : k);
     camLook.lerp(tmpV, far ? 1 : k * 1.6);
@@ -458,7 +467,7 @@ function frame() {
   sun.intensity = env.lightIntensity + env.flash * 2;
   hemi.color.copy(env.skyAmb);
   hemi.groundColor.copy(env.groundAmb);
-  hemi.intensity = 2.4 + env.flash * 4;
+  hemi.intensity = 2.0 + env.flash * 4;
   scene.fog.color.copy(env.fogColor);
   scene.fog.density = env.fogDensity;
   renderer.toneMappingExposure = env.exposure;

@@ -1,6 +1,6 @@
 /**
- * Procedural ambience with the Web Audio API: rain + a faint distant city hum
- * + occasional thunder. No audio files needed. Must be started from a user
+ * Procedural ambience with the Web Audio API: rain, the hum of the city and its
+ * motorbikes, the odd horn, and thunder. No audio files needed. Must be started from a user
  * gesture (iOS requirement).
  */
 export class Ambience {
@@ -65,8 +65,55 @@ export class Ambience {
     const humGain = ctx.createGain(); humGain.gain.value = 0.22;
     hum.connect(hlp).connect(humGain).connect(this.master);
 
+    // swarm of motorbikes: band-passed rumble that swells and fades
+    const motor = this._loop(brown);
+    const mbp = ctx.createBiquadFilter(); mbp.type = 'bandpass'; mbp.frequency.value = 150; mbp.Q.value = 0.9;
+    const motorGain = ctx.createGain(); motorGain.gain.value = 0.35;
+    const lfo = ctx.createOscillator(); lfo.frequency.value = 0.13;
+    const lfoAmt = ctx.createGain(); lfoAmt.gain.value = 0.18;
+    lfo.connect(lfoAmt).connect(motorGain.gain);
+    lfo.start();
+    motor.connect(mbp).connect(motorGain).connect(this.master);
+
     this.brown = brown;
+    this._scheduleHonk();
     return true;
+  }
+
+  /** Occasional distant "bíp bíp" of a scooter horn. */
+  _scheduleHonk() {
+    setTimeout(() => {
+      if (this.enabled && this.ctx && document.visibilityState === 'visible') this.honk();
+      this._scheduleHonk();
+    }, 2500 + Math.random() * 7000);
+  }
+
+  honk() {
+    const ctx = this.ctx;
+    const t0 = ctx.currentTime + 0.05;
+    const f = 380 + Math.random() * 180;
+    const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1400;
+    const g = ctx.createGain(); g.gain.value = 0;
+    const vol = 0.02 + Math.random() * 0.04;
+    const beeps = Math.random() < 0.6 ? 2 : 1;
+    for (let k = 0; k < beeps; k++) {
+      const t = t0 + k * 0.2;
+      for (const mul of [1, 1.26]) {
+        const o = ctx.createOscillator();
+        o.type = 'square';
+        o.frequency.value = f * mul;
+        o.connect(lp);
+        o.start(t);
+        o.stop(t + 0.14);
+      }
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(vol, t + 0.01);
+      g.gain.setValueAtTime(vol, t + 0.12);
+      g.gain.linearRampToValueAtTime(0, t + 0.14);
+    }
+    if (pan) { pan.pan.value = Math.random() * 1.6 - 0.8; lp.connect(g).connect(pan).connect(this.master); }
+    else lp.connect(g).connect(this.master);
   }
 
   async setEnabled(on) {

@@ -1,6 +1,6 @@
 # Chill City 🌆🌧️
 
-Thành phố 3D để thư giãn buổi tối: **hoàng hôn** / **đêm**, bật **mưa**, xe chạy qua lại có đèn giao thông, đèn đường, biển neon. Chạy trên trình duyệt, tối ưu cho **laptop 16"** và **iPad 11"**.
+Phố phường Việt Nam 3D để thư giãn buổi tối: **hoàng hôn** / **đêm**, bật **mưa**. Nhà ống sơn màu với ban công, biển hiệu (Phở, Cà phê, Bánh mì…), mái bạt, bồn nước inox, dây điện chằng chịt, dây đèn giăng ngang phố, quán vỉa hè ghế nhựa, xe máy đỗ trước cửa hàng — và hàng trăm **xe máy** chạy dàn hàng ngang, len lỏi, dồn ở đèn đỏ (mưa thì mặc áo mưa), xen lẫn taxi, ô tô và xe buýt. Chạy trên trình duyệt, tối ưu cho **laptop 16"** và **iPad 11"**.
 
 Không cần cài đặt hay build — chỉ là HTML + JavaScript dùng [three.js](https://threejs.org) (tải từ CDN).
 
@@ -26,7 +26,7 @@ python3 -m http.server 8000
 | --- | --- | --- |
 | 🌇 / 🌙 | `1` / `2` | Hoàng hôn / Đêm (chuyển mượt) |
 | 🌧️ + thanh trượt | `R` | Bật/tắt mưa, chỉnh cường độ (mưa to có sấm chớp) |
-| 🔇 / 🔊 | `M` | Âm thanh mưa + tiếng thành phố (tự tạo, không cần file) |
+| 🔇 / 🔊 | `M` | Âm thanh mưa, tiếng xe máy, còi bíp bíp, sấm (tự tạo, không cần file) |
 | 🎥 | `A` | Camera tự lượn chậm quanh thành phố |
 | 🏙️ | `V` | Đổi góc nhìn: Toàn cảnh → Tầng thấp → Dạo phố → Theo xe |
 | ⛶ | `F` | Toàn màn hình |
@@ -46,9 +46,10 @@ python3 -m http.server 8000
 ```
 index.html      giao diện + importmap three.js
 style.css       UI kính mờ, responsive cho laptop & iPad
+src/vehicles.js hình học xe máy, người lái, ô tô, xe buýt + bảng màu
 src/main.js     renderer, camera, các góc nhìn, thời gian/thời tiết, UI
-src/city.js     sinh thành phố: đường, nhà (shader cửa sổ), đèn đường, neon, cây
-src/traffic.js  xe chạy theo làn, rẽ ở ngã tư, đèn tín hiệu, đèn pha/đèn hậu
+src/city.js     sinh phố: nhà ống, cao ốc, biển hiệu, ban công, dây điện, dây đèn, quán vỉa hè, cây
+src/traffic.js  xe máy/ô tô/buýt: len lỏi, rẽ ở ngã tư, đèn tín hiệu, đèn pha/đèn hậu
 src/sky.js      bầu trời, mặt trời, mặt trăng, mây, sao
 src/rain.js     mưa rơi + gợn nước trên đường
 src/audio.js    âm thanh mưa/sấm bằng Web Audio
