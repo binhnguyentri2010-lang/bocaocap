@@ -7,54 +7,86 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="GymRank" />
-  <meta name="theme-color" content="#0d1016" />
+  <meta name="theme-color" content="#101318" />
   <title>GymRank</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&display=swap" />
   <style>
-    :root { --bg:#0d1016; --card:#161b23; --line:#262d38; --text:#e9ecf1; --muted:#8b94a3; --accent:#6ea8ff; color-scheme:dark; }
+    :root { --bg:#101318; --panel:#181c23; --line:#272d37; --text:#eef0f3; --muted:#8c95a3; --c:#3a414d;
+      --display:'Big Shoulders Display', system-ui, sans-serif; color-scheme:dark; }
     * { box-sizing:border-box; }
     body { margin:0; background:var(--bg); color:var(--text); font:16px/1.4 system-ui,-apple-system,sans-serif; -webkit-tap-highlight-color:transparent; }
     main { max-width:480px; margin:auto; padding:calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 24px); }
     header { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
-    h1 { margin:0; flex:1; font-size:24px; letter-spacing:.3px; }
-    h2 { margin:0; font-size:22px; }
-    h3 { margin:0 0 10px; font-size:16px; }
+    h1 { margin:0; flex:1; font:800 32px/1 var(--display); letter-spacing:.02em; }
+    h3 { margin:0 0 10px; font:700 22px/1 var(--display); letter-spacing:.02em; }
     small { display:block; color:var(--muted); font-size:13px; }
     button { font:inherit; color:inherit; border:0; cursor:pointer; }
-    .card { background:var(--card); border:1px solid var(--line); border-radius:18px; padding:14px; margin-bottom:14px; }
+    :focus-visible { outline:2px solid var(--text); outline-offset:2px; }
+    .panel { background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:16px; margin-bottom:14px; }
     .flex { display:flex; gap:14px; align-items:center; }
     .grow { flex:1; min-width:0; }
-    #me { background:var(--card); border:1px solid var(--line); border-radius:999px; padding:6px 12px; font-size:14px; }
+    #me { background:var(--panel); border:1px solid var(--line); border-radius:999px; padding:7px 14px; font-size:14px; }
 
-    .badge { --c:#555; flex:none; width:52px; aspect-ratio:1; display:grid; place-items:center; font-weight:800; color:#0d1016;
-      clip-path:polygon(50% 0,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%);
-      background:linear-gradient(160deg,color-mix(in srgb,var(--c),#fff 40%),var(--c) 55%,color-mix(in srgb,var(--c),#000 45%)); }
-    .badge.big { width:92px; font-size:26px; }
-    .badge.none { --c:#3a414d; color:var(--muted); }
+    .emblem { display:block; flex:none; overflow:visible; }
+    .empty .emblem, .hero.none > .emblem { filter:grayscale(1); opacity:.3; }
+    .tier-name { margin:0; font:800 48px/1 var(--display); letter-spacing:.03em; text-transform:uppercase; color:color-mix(in srgb,var(--c),#fff 35%); }
+    .tier { font:800 16px/1 var(--display); letter-spacing:.04em; text-transform:uppercase; color:color-mix(in srgb,var(--c),#fff 25%); white-space:nowrap; }
+    .sub { margin:6px 0 0; color:var(--muted); font-size:14px; }
 
-    .bar { height:8px; border-radius:99px; background:var(--line); overflow:hidden; margin:6px 0 4px; }
-    .bar i { display:block; height:100%; background:var(--c); border-radius:inherit; transition:width .4s; }
+    .bar { height:8px; border-radius:99px; background:var(--line); overflow:hidden; margin:8px 0 5px; }
+    .bar i { display:block; height:100%; border-radius:inherit; transition:width .5s;
+      background:linear-gradient(90deg,color-mix(in srgb,var(--c),#000 25%),color-mix(in srgb,var(--c),#fff 30%)); }
+
+    /* Ô hạng tổng: huy hiệu đứng giữa "sân khấu" ánh màu của hạng */
+    .hero { text-align:center; padding:24px 18px 18px; border-color:color-mix(in srgb,var(--c) 40%,var(--line));
+      background:radial-gradient(110% 65% at 50% 28%,color-mix(in srgb,var(--c) 30%,transparent),transparent 70%),var(--panel); }
+    .hero > .emblem { width:150px; margin:0 auto 6px; filter:drop-shadow(0 10px 26px color-mix(in srgb,var(--c) 55%,transparent)); }
+    .hero .bar { margin-top:14px; }
+    .ladder { display:flex; justify-content:space-between; align-items:center; margin-top:18px; padding:0 4px; }
+    .ladder .emblem { width:34px; opacity:.22; filter:grayscale(1); }
+    .ladder .done { opacity:.65; filter:none; }
+    .ladder .now { width:46px; opacity:1; filter:drop-shadow(0 0 8px color-mix(in srgb,var(--c) 70%,transparent)); }
 
     label { display:block; font-size:13px; color:var(--muted); }
     select, input[type=number] { width:100%; margin-top:4px; padding:12px; font:inherit; font-size:16px; color:var(--text);
       background:var(--bg); border:1px solid var(--line); border-radius:12px; }
-    .row { display:flex; gap:10px; margin:10px 0; }
+    .row { display:flex; gap:10px; margin:10px 0 14px; }
     .row label { flex:1; }
-    #preview { min-height:52px; margin-bottom:10px; }
-    .primary { width:100%; padding:13px; border-radius:12px; background:var(--accent); color:#0d1016; font-weight:700; }
-    .primary:disabled { opacity:.35; }
-    #msg { text-align:center; font-weight:600; margin-top:8px; min-height:1.4em; }
+    #preview { min-height:64px; margin-bottom:14px; }
+    #preview > .emblem { width:64px; }
+    .primary { width:100%; padding:14px; border-radius:14px; background:var(--text); color:var(--bg); font-weight:700; }
+    .primary:disabled { opacity:.3; }
+    #msg { text-align:center; font-weight:600; margin-top:10px; min-height:1.4em; }
 
-    ul { list-style:none; margin:0; padding:0; display:grid; gap:10px; }
-    li { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:12px; cursor:pointer; }
-    li.empty b { color:var(--muted); }
-    .del { background:none; color:var(--muted); padding:6px 8px; font-size:15px; }
+    ul { list-style:none; margin:0; padding:0; }
+    li { display:flex; gap:12px; align-items:center; padding:12px 0; cursor:pointer; }
+    li + li { border-top:1px solid var(--line); }
+    li > .emblem { width:52px; }
+    li .head { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+    li.empty b { color:var(--muted); font-weight:500; }
+    .del { background:none; color:var(--muted); padding:8px; font-size:15px; }
 
-    dialog { width:min(92vw,380px); background:var(--card); color:var(--text); border:1px solid var(--line); border-radius:18px; padding:18px; }
-    dialog::backdrop { background:#000a; }
-    fieldset { border:0; padding:0; margin:12px 0; display:flex; gap:10px; }
+    dialog { width:min(92vw,380px); background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:22px; padding:20px; }
+    dialog::backdrop { background:#000b; }
+    dialog h2 { margin:0; font:800 30px/1.1 var(--display); }
+    fieldset { border:0; padding:0; margin:14px 0; display:flex; gap:10px; }
     fieldset label { flex:1; text-align:center; padding:11px; border:1px solid var(--line); border-radius:12px; color:var(--text); font-size:16px; }
-    fieldset label:has(input:checked) { border-color:var(--accent); background:color-mix(in srgb,var(--accent),transparent 85%); }
+    fieldset label:has(input:checked) { border-color:var(--text); background:#ffffff14; }
     fieldset input { display:none; }
+
+    /* Màn hình lên hạng: khoảnh khắc chuyển động duy nhất của app */
+    #levelup { text-align:center; border-color:color-mix(in srgb,var(--c) 50%,var(--line));
+      background:radial-gradient(90% 60% at 50% 35%,color-mix(in srgb,var(--c) 40%,transparent),transparent 72%),var(--panel); }
+    #levelup .emblem { width:180px; margin:4px auto 8px; filter:drop-shadow(0 12px 30px color-mix(in srgb,var(--c) 60%,transparent)); }
+    #levelup[open] .emblem { animation:pop .8s cubic-bezier(.2,1.5,.4,1) both; }
+    #levelup[open] .tier-name { animation:rise .5s .35s both; }
+    #levelup .primary { margin-top:20px; }
+    @keyframes pop { from { transform:scale(.3) rotate(-15deg); opacity:0; } }
+    @keyframes rise { from { transform:translateY(10px); opacity:0; } }
+    @media (prefers-reduced-motion:reduce) { *, *::before { animation:none !important; transition:none !important; } }
+
     footer { margin-top:18px; text-align:center; }
   </style>
 </head>
@@ -62,12 +94,12 @@
 <main>
   <header>
     <h1>GymRank</h1>
-    <button id="me" type="button" aria-label="Sửa thông tin cá nhân">⚙️</button>
+    <button id="me" type="button" aria-label="Sửa giới tính và cân nặng"></button>
   </header>
 
-  <section id="overall" class="card flex" aria-live="polite"></section>
+  <section id="overall" class="panel hero" aria-live="polite"></section>
 
-  <section class="card">
+  <section class="panel">
     <h3>Ghi mức tạ</h3>
     <label>Bài tập <select id="ex"></select></label>
     <div class="row">
@@ -79,7 +111,10 @@
     <div id="msg" aria-live="polite"></div>
   </section>
 
-  <ul id="list"></ul>
+  <section class="panel">
+    <h3>Kỷ lục từng bài</h3>
+    <ul id="list"></ul>
+  </section>
 
   <footer><small>Ngưỡng xếp hạng là ước tính tham khảo, không phải chuẩn chính thức. 1RM tính theo công thức Epley.</small></footer>
 </main>
@@ -93,7 +128,14 @@
       <label><input type="radio" name="sex" value="f" />Nữ</label>
     </fieldset>
     <label>Cân nặng (kg)<input id="bw" type="number" inputmode="decimal" min="30" max="250" step="0.1" required /></label>
-    <button class="primary" style="margin-top:14px">Xong</button>
+    <button class="primary" style="margin-top:16px">Xong</button>
+  </form>
+</dialog>
+
+<dialog id="levelup">
+  <form method="dialog">
+    <div id="luBody"></div>
+    <button class="primary">Tiếp tục tập</button>
   </form>
 </dialog>
 
@@ -106,31 +148,64 @@
   try { Object.assign(state, JSON.parse(localStorage.getItem(KEY))); } catch {}
   const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
 
-  const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
-  const fmt = n => (Math.round(n * 10) / 10).toLocaleString('vi-VN');
-  const badge = (t, big = '') => `<span class="badge ${big}" style="--c:${TIERS[t].color}">${ROMAN[t]}</span>`;
-  const bar = r => `<div class="bar" style="--c:${TIERS[r.tier].color}"><i style="width:${r.progress * 100}%"></i></div>`;
-  const load = (id, kg) => !EXERCISES[id].bw ? `${fmt(kg)} kg` : kg ? `BW ${kg > 0 ? '+' : '−'}${fmt(Math.abs(kg))} kg` : 'BW';
-  const next = (r, reps) => r.next ? `Thêm ${fmt(r.next.kg)} kg × ${reps} rep → ${TIERS[r.next.tier].name}` : 'Hạng cao nhất! 🔥';
+  // Huy hiệu SVG: càng lên hạng càng thêm chi tiết (viền → cánh → vương miện → kim cương → hào quang).
+  const mix = (hex, to, a) => '#' + [1, 3, 5].map(i => Math.round(parseInt(hex.slice(i, i + 2), 16) * (1 - a) + to * a).toString(16).padStart(2, '0')).join('');
+  document.body.insertAdjacentHTML('afterbegin', `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>${TIERS.map((t, i) => `
+    <linearGradient id="m${i}" x1="0" y1="0" x2=".35" y2="1">
+      <stop offset="0" stop-color="${mix(t.color, 255, .55)}"/><stop offset=".47" stop-color="${t.color}"/>
+      <stop offset=".53" stop-color="${mix(t.color, 0, .35)}"/><stop offset="1" stop-color="${mix(t.color, 255, .2)}"/>
+    </linearGradient>`).join('')}</defs></svg>`);
+  const SHIELD = 'M60 16 L94 29 L90 70 Q86 90 60 104 Q34 90 30 70 L26 29 Z';
+  const WING = 'M31 40 L4 32 L12 45 L1 50 L13 58 L6 67 L31 66 Z';
+  const CROWN = 'M38 28 L40 1 L51 13 L60 -5 L69 13 L80 1 L82 28 Z';
+  const BARBELL = 'M38 58h44v4H38z M43 49h5v22h-5z M72 49h5v22h-5z M49 52h3v16h-3z M68 52h3v16h-3z';
+  function emblem(t) {
+    const f = `url(#m${t})`, c = TIERS[t].color;
+    const wing = s => `<path d="${WING}" fill="${f}" stroke="${mix(c, 0, .5)}" stroke-width="1.5" transform="translate(31 54) scale(${s}) translate(-31 -54)"/>`;
+    const wings = s => `${wing(s)}<g transform="matrix(-1 0 0 1 120 0)">${wing(s)}</g>`;
+    return `<svg class="emblem" viewBox="0 -6 120 120" aria-hidden="true">
+      ${t === 6 ? `<circle cx="60" cy="58" r="50" fill="${c}" opacity=".22"/>` + [...Array(16)].map((_, i) =>
+        `<path d="M60 58 L58.5 ${i % 2 ? 6 : -8} L61.5 ${i % 2 ? 6 : -8} Z" fill="${mix(c, 255, .4)}" opacity=".55" transform="rotate(${i * 22.5} 60 58)"/>`).join('') : ''}
+      ${t >= 2 ? wings(t === 2 ? .6 : 1) : ''}
+      ${t >= 4 ? `<path d="${CROWN}" fill="${f}" stroke="${mix(c, 0, .5)}" stroke-width="1.5"/>` : ''}
+      ${t >= 5 ? '<path d="M60 -12 L67 -3 L60 6 L53 -3 Z" fill="#dff6ff" stroke="#fff" stroke-width="1.5"/>' : ''}
+      <path d="${SHIELD}" fill="${f}" stroke="${mix(c, 0, .55)}" stroke-width="2.5"/>
+      ${t >= 1 ? `<path d="${SHIELD}" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="2.5" transform="translate(60 60) scale(.8) translate(-60 -60)"/>` : ''}
+      <path d="${BARBELL}" fill="${mix(c, 0, .65)}" fill-opacity=".85"/>
+    </svg>`;
+  }
 
+  const fmt = n => (Math.round(n * 10) / 10).toLocaleString('vi-VN');
+  const bar = p => `<div class="bar"><i style="width:${p * 100}%"></i></div>`;
+  const load = (id, kg) => !EXERCISES[id].bw ? `${fmt(kg)} kg` : kg ? `Cân nặng ${kg > 0 ? '+' : '−'} ${fmt(Math.abs(kg))} kg` : 'Cân nặng';
+  const next = (r, reps) => r.next ? `Thêm ${fmt(r.next.kg)} kg × ${reps} rep để lên ${TIERS[r.next.tier].name}` : 'Đã ở hạng cao nhất';
+
+  let overallTier = -1;
   function render() {
-    $('me').textContent = state.bw ? `${state.sex === 'f' ? 'Nữ' : 'Nam'} · ${fmt(state.bw)} kg ⚙️` : '⚙️';
+    $('me').textContent = state.bw ? `${state.sex === 'f' ? 'Nữ' : 'Nam'}, ${fmt(state.bw)} kg` : 'Nhập cân nặng';
     const scores = [];
     $('list').innerHTML = Object.entries(EXERCISES).map(([id, ex]) => {
       const b = state.best[id];
-      if (!b || !state.bw) return `<li class="flex empty" data-id="${id}"><span class="badge none">–</span>
-        <div class="grow"><b>${ex.name}</b><small>Chưa có, chạm để ghi</small></div></li>`;
+      if (!b || !state.bw) return `<li class="empty" data-id="${id}">${emblem(0)}
+        <div class="grow"><b>${ex.name}</b><small>Chưa có kỷ lục. Chạm để ghi.</small></div></li>`;
       const r = rate(id, state.sex, state.bw, b.kg, b.reps);
       scores.push(r.score);
-      return `<li class="flex" data-id="${id}">${badge(r.tier)}
-        <div class="grow"><b>${ex.name}</b><small>${TIERS[r.tier].name} · ${load(id, b.kg)} × ${b.reps} · 1RM ≈ ${fmt(r.oneRm)} kg</small>
-        ${bar(r)}<small>${next(r, b.reps)}</small></div>
+      return `<li data-id="${id}" style="--c:${TIERS[r.tier].color}">${emblem(r.tier)}
+        <div class="grow"><div class="head"><b>${ex.name}</b><span class="tier">${TIERS[r.tier].name}</span></div>
+        <small>${load(id, b.kg)} × ${b.reps} rep, 1RM ước tính ${fmt(r.oneRm)} kg</small>
+        ${bar(r.progress)}<small>${next(r, b.reps)}</small></div>
         <button class="del" data-del="${id}" aria-label="Xóa kỷ lục ${ex.name}">✕</button></li>`;
     }).join('');
-    const o = overall(scores);
-    $('overall').innerHTML = o
-      ? `${badge(o.tier, 'big')}<div class="grow"><small>Hạng tổng</small><h2>${TIERS[o.tier].name}</h2>${bar(o)}<small>Trung bình ${scores.length} bài</small></div>`
-      : `<span class="badge big none">?</span><div class="grow"><small>Hạng tổng</small><h2>Chưa xếp hạng</h2><small>Ghi ít nhất một bài để có hạng</small></div>`;
+
+    const o = overall(scores), t = o ? o.tier : 0, hero = $('overall');
+    hero.style.setProperty('--c', o ? TIERS[t].color : '#3a414d');
+    hero.classList.toggle('none', !o);
+    hero.innerHTML = `${emblem(t)}
+      <h2 class="tier-name">${o ? TIERS[t].name : 'Chưa có hạng'}</h2>
+      <p class="sub">${o ? `Hạng tổng, trung bình ${scores.length} bài` : 'Ghi mức tạ đầu tiên bên dưới để nhận hạng'}</p>
+      <div class="ladder" aria-hidden="true">${TIERS.map((_, i) => emblem(i).replace('class="emblem"', `class="emblem ${!o ? '' : i < t ? 'done' : i === t ? 'now' : ''}"`)).join('')}</div>
+      ${o ? `${bar(o.progress)}<small>${t < TIERS.length - 1 ? `Tiến độ lên ${TIERS[t + 1].name}: ${Math.round(o.progress * 100)}%` : 'Bạn đã ở hạng cao nhất'}</small>` : ''}`;
+    overallTier = o ? t : -1;
   }
 
   function preview() {
@@ -140,14 +215,22 @@
     const ok = state.bw > 0 && Number.isFinite(kg) && Number.isInteger(reps) && reps >= 1 && reps <= 30 && (bw ? state.bw + kg > 0 : kg > 0);
     $('save').disabled = !ok;
     if (!ok) {
-      $('preview').innerHTML = `<small>${state.bw ? (bw ? 'Không đeo tạ thì nhập 0, dùng máy hỗ trợ thì nhập số âm. Số rep từ 1 đến 30.' : 'Nhập số kg và số rep (1–30).') : 'Nhập cân nặng ở nút ⚙️ trước.'}</small>`;
+      $('preview').style.removeProperty('--c');
+      $('preview').innerHTML = `<small>${state.bw ? (bw ? 'Không đeo tạ thì nhập 0, dùng máy hỗ trợ thì nhập số âm. Số rep từ 1 đến 30.' : 'Nhập số kg và số rep (1–30) để xem hạng.') : 'Bấm “Nhập cân nặng” ở góc trên trước.'}</small>`;
       return null;
     }
     const r = rate(id, state.sex, state.bw, kg, reps);
-    $('preview').innerHTML = `${badge(r.tier)}<div class="grow"><b>${TIERS[r.tier].name}</b>
-      <small>1RM ≈ ${fmt(r.oneRm)} kg · ${r.ratio.toLocaleString('vi-VN', { maximumFractionDigits: 2 })}× cân nặng${reps > 10 ? ' · trên 10 rep thì ước tính kém chính xác' : ''}</small>
-      ${bar(r)}<small>${next(r, reps)}</small></div>`;
+    $('preview').style.setProperty('--c', TIERS[r.tier].color);
+    $('preview').innerHTML = `${emblem(r.tier)}<div class="grow"><span class="tier" style="font-size:22px">${TIERS[r.tier].name}</span>
+      <small>1RM ước tính ${fmt(r.oneRm)} kg, gấp ${r.ratio.toLocaleString('vi-VN', { maximumFractionDigits: 2 })} lần cân nặng${reps > 10 ? '. Trên 10 rep thì ước tính kém chính xác.' : ''}</small>
+      ${bar(r.progress)}<small>${next(r, reps)}</small></div>`;
     return { id, kg, reps, r };
+  }
+
+  function levelUp(t, label) {
+    $('levelup').style.setProperty('--c', TIERS[t].color);
+    $('luBody').innerHTML = `${emblem(t)}<p class="sub">${label}</p><h2 class="tier-name">${TIERS[t].name}</h2>`;
+    $('levelup').showModal();
   }
 
   $('ex').innerHTML = Object.entries(EXERCISES).map(([id, e]) => `<option value="${id}">${e.name}</option>`).join('');
@@ -158,11 +241,14 @@
     if (!p) return;
     const b = state.best[p.id];
     const old = b && rate(p.id, state.sex, state.bw, b.kg, b.reps);
-    if (old && old.oneRm >= p.r.oneRm && !confirm(`Thấp hơn kỷ lục hiện tại (${load(p.id, b.kg)} × ${b.reps}). Vẫn ghi đè?`)) return;
+    if (old && old.oneRm >= p.r.oneRm && !confirm(`Thấp hơn kỷ lục hiện tại (${load(p.id, b.kg)} × ${b.reps} rep). Vẫn ghi đè?`)) return;
+    const before = overallTier;
     state.best[p.id] = { kg: p.kg, reps: p.reps };
     persist();
     render();
-    $('msg').textContent = !old ? 'Đã lưu ✅' : p.r.tier > old.tier ? `Lên hạng ${TIERS[p.r.tier].name}! 🎉` : p.r.oneRm > old.oneRm ? 'Kỷ lục mới 💪' : 'Đã lưu';
+    $('msg').textContent = !old ? 'Đã lưu kỷ lục' : p.r.oneRm > old.oneRm ? 'Đã lưu kỷ lục mới 💪' : 'Đã lưu kỷ lục';
+    if (overallTier > before) levelUp(overallTier, before < 0 ? 'Hạng tổng đầu tiên của bạn' : 'Bạn đã lên hạng tổng');
+    else if (old && p.r.tier > old.tier) levelUp(p.r.tier, `${EXERCISES[p.id].name} lên hạng`);
     $('kg').value = $('reps').value = '';
     preview();
   };
@@ -178,8 +264,8 @@
     $('ex').value = li.dataset.id;
     $('msg').textContent = '';
     preview();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    $('kg').focus();
+    $('ex').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    $('kg').focus({ preventScroll: true });
   };
 
   const dlg = $('profile');
