@@ -47,9 +47,12 @@
     .hero > .emblem { width:150px; margin:0 auto 6px; filter:drop-shadow(0 10px 26px color-mix(in srgb,var(--c) 55%,transparent)); }
     .hero .bar { margin-top:14px; }
     .ladder { display:flex; justify-content:space-between; align-items:center; margin-top:18px; padding:0 4px; }
-    .ladder .emblem { width:34px; opacity:.22; filter:grayscale(1); }
+    .ladder .emblem { width:30px; opacity:.22; filter:grayscale(1); }
     .ladder .done { opacity:.65; filter:none; }
-    .ladder .now { width:46px; opacity:1; filter:drop-shadow(0 0 8px color-mix(in srgb,var(--c) 70%,transparent)); }
+    .ladder .now { width:42px; opacity:1; filter:drop-shadow(0 0 8px color-mix(in srgb,var(--c) 70%,transparent)); }
+    .bar.seg { position:relative; }
+    .bar.seg::after { content:""; position:absolute; inset:0;
+      background:linear-gradient(90deg,transparent calc(100%/3 - 1.5px),var(--panel) 0 calc(100%/3 + 1.5px),transparent 0 calc(200%/3 - 1.5px),var(--panel) 0 calc(200%/3 + 1.5px),transparent 0); }
 
     label { display:block; font-size:13px; color:var(--muted); }
     select, input[type=number] { width:100%; margin-top:4px; padding:12px; font:inherit; font-size:16px; color:var(--text);
@@ -144,7 +147,7 @@
 </dialog>
 
 <script type="module">
-  import { TIERS, EXERCISES, rate, overall } from './rank.js';
+  import { TIERS, SUBS, TOP, EXERCISES, rate, overall, label } from './rank.js';
 
   const $ = id => document.getElementById(id);
   const KEY = 'gymrank';
@@ -185,7 +188,8 @@
     return false;
   };
 
-  // Huy hiệu SVG: càng lên hạng càng thêm chi tiết (viền → cánh → vương miện → kim cương → hào quang).
+  // Huy hiệu SVG: Gỗ có vân, Sắt có đinh tán, từ Bạc có cánh, Bạch kim có vương miện, Kim cương có đá quý,
+  // Cao thủ cánh đôi + 3 viên đá, Huyền thoại thêm hào quang. Hạt nhỏ dưới khiên = bậc phụ I/II/III.
   const mix = (hex, to, a) => '#' + [1, 3, 5].map(i => Math.round(parseInt(hex.slice(i, i + 2), 16) * (1 - a) + to * a).toString(16).padStart(2, '0')).join('');
   document.body.insertAdjacentHTML('afterbegin', `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>${TIERS.map((t, i) => `
     <linearGradient id="m${i}" x1="0" y1="0" x2=".35" y2="1">
@@ -194,30 +198,44 @@
     </linearGradient>`).join('')}</defs></svg>`);
   const SHIELD = 'M60 16 L94 29 L90 70 Q86 90 60 104 Q34 90 30 70 L26 29 Z';
   const WING = 'M31 40 L4 32 L12 45 L1 50 L13 58 L6 67 L31 66 Z';
+  const WING2 = 'M33 36 L12 13 L15 27 L4 28 L31 50 Z';
   const CROWN = 'M38 28 L40 1 L51 13 L60 -5 L69 13 L80 1 L82 28 Z';
   const BARBELL = 'M38 58h44v4H38z M43 49h5v22h-5z M72 49h5v22h-5z M49 52h3v16h-3z M68 52h3v16h-3z';
-  function emblem(t) {
-    const f = `url(#m${t})`, c = TIERS[t].color;
-    const wing = s => `<path d="${WING}" fill="${f}" stroke="${mix(c, 0, .5)}" stroke-width="1.5" transform="translate(31 54) scale(${s}) translate(-31 -54)"/>`;
-    const wings = s => `${wing(s)}<g transform="matrix(-1 0 0 1 120 0)">${wing(s)}</g>`;
-    return `<svg class="emblem" viewBox="0 -6 120 120" aria-hidden="true">
-      ${t === 6 ? `<circle cx="60" cy="58" r="50" fill="${c}" opacity=".22"/>` + [...Array(16)].map((_, i) =>
-        `<path d="M60 58 L58.5 ${i % 2 ? 6 : -8} L61.5 ${i % 2 ? 6 : -8} Z" fill="${mix(c, 255, .4)}" opacity=".55" transform="rotate(${i * 22.5} 60 58)"/>`).join('') : ''}
-      ${t >= 2 ? wings(t === 2 ? .6 : 1) : ''}
-      ${t >= 4 ? `<path d="${CROWN}" fill="${f}" stroke="${mix(c, 0, .5)}" stroke-width="1.5"/>` : ''}
-      ${t >= 5 ? '<path d="M60 -12 L67 -3 L60 6 L53 -3 Z" fill="#dff6ff" stroke="#fff" stroke-width="1.5"/>' : ''}
-      <path d="${SHIELD}" fill="${f}" stroke="${mix(c, 0, .55)}" stroke-width="2.5"/>
-      ${t >= 1 ? `<path d="${SHIELD}" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="2.5" transform="translate(60 60) scale(.8) translate(-60 -60)"/>` : ''}
+  const GLOSS = 'M28 30.5 L60 18 L92 30.5 L91.4 42 Q60 30 28.8 46 Z';
+  const GRAIN = 'M33 38 Q60 31 87 38 M37 82 Q60 88 83 82 M46 93 Q60 97 74 93';
+  const gem = (x, y, s) => `<path d="M${x} ${y - s}L${x + s * .75} ${y}L${x} ${y + s}L${x - s * .75} ${y}Z" fill="#e4f7ff" stroke="#fff" stroke-width="1.2"/>`;
+  function emblem(t, sub) {
+    const f = `url(#m${t})`, c = TIERS[t].color, dark = mix(c, 0, .55);
+    const wing = (d, s) => `<path d="${d}" fill="${f}" stroke="${dark}" stroke-width="1.5" transform="translate(31 54) scale(${s}) translate(-31 -54)"/>`;
+    const pair = (d, s) => wing(d, s) + `<g transform="matrix(-1 0 0 1 120 0)">${wing(d, s)}</g>`;
+    const w = [0, 0, 0, .6, .85, .95, 1, 1, 1][t];
+    return `<svg class="emblem" viewBox="0 -8 120 128" aria-hidden="true">
+      ${t === TOP ? `<circle cx="60" cy="58" r="52" fill="${c}" opacity=".22"/>` + [...Array(16)].map((_, i) =>
+        `<path d="M60 58 L58.5 ${i % 2 ? 4 : -10} L61.5 ${i % 2 ? 4 : -10} Z" fill="${mix(c, 255, .45)}" opacity=".55" transform="rotate(${i * 22.5} 60 58)"/>`).join('') : ''}
+      ${t >= 7 ? pair(WING2, 1) : ''}
+      ${w ? pair(WING, w) : ''}
+      ${t >= 5 ? `<path d="${CROWN}" fill="${f}" stroke="${dark}" stroke-width="1.5"/>` : ''}
+      ${t >= 6 ? gem(60, -6, 8) : ''}
+      ${t >= 7 ? gem(40, 2, 4.5) + gem(80, 2, 4.5) : ''}
+      <path d="${SHIELD}" fill="${f}" stroke="${dark}" stroke-width="2.5"/>
+      <path d="${GLOSS}" fill="#fff" opacity=".16"/>
+      ${t === 0 ? `<path d="${GRAIN}" fill="none" stroke="${dark}" stroke-opacity=".5" stroke-width="1.6"/>` : ''}
+      ${t === 1 ? [[36, 36], [84, 36], [40, 79], [80, 79]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2.6" fill="${mix(c, 255, .5)}" stroke="${dark}"/>`).join('') : ''}
+      ${t >= 2 ? `<path d="${SHIELD}" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="2.5" transform="translate(60 60) scale(.8) translate(-60 -60)"/>` : ''}
       <path d="${BARBELL}" fill="${mix(c, 0, .65)}" fill-opacity=".85"/>
+      ${sub != null && t < TOP ? [...Array(sub + 1)].map((_, i) => { const x = 60 + (i - sub / 2) * 11;
+        return `<path d="M${x} 106L${x + 4} 111L${x} 116L${x - 4} 111Z" fill="${mix(c, 255, .45)}" stroke="${dark}" stroke-width="1.2"/>`; }).join('') : ''}
     </svg>`;
   }
 
   const fmt = n => (Math.round(n * 10) / 10).toLocaleString('vi-VN');
-  const bar = p => `<div class="bar"><i style="width:${p * 100}%"></i></div>`;
+  // seg: thanh chia 3 khúc ứng với 3 bậc phụ
+  const bar = (p, seg) => `<div class="bar${seg ? ' seg' : ''}"><i style="width:${p * 100}%"></i></div>`;
   const load = (id, kg) => !EXERCISES[id].bw ? `${fmt(kg)} kg` : kg ? `Cân nặng ${kg > 0 ? '+' : '−'} ${fmt(Math.abs(kg))} kg` : 'Cân nặng';
-  const next = (r, reps) => r.next ? `Thêm ${fmt(r.next.kg)} kg × ${reps} rep để lên ${TIERS[r.next.tier].name}` : 'Đã ở hạng cao nhất';
+  const next = (r, reps) => r.next ? `Thêm ${fmt(r.next.kg)} kg × ${reps} rep để lên ${label(r.next.tier, r.next.sub)}` : 'Đã ở hạng cao nhất';
+  const level = r => (r ? r.tier * SUBS.length + r.sub : -1);
 
-  let overallTier = -1;
+  let overallNow = null;
   function render() {
     $('me').textContent = state.bw ? `${state.sex === 'f' ? 'Nữ' : 'Nam'}, ${fmt(state.bw)} kg` : 'Nhập cân nặng';
     const scores = [];
@@ -227,23 +245,23 @@
         <div class="grow"><b>${ex.name}</b><small>Chưa có kỷ lục. Chạm để ghi.</small></div></li>`;
       const r = rate(id, state.sex, state.bw, b.kg, b.reps);
       scores.push(r.score);
-      return `<li data-id="${id}" style="--c:${TIERS[r.tier].color}">${emblem(r.tier)}
-        <div class="grow"><div class="head"><b>${ex.name}</b><span class="tier">${TIERS[r.tier].name}</span></div>
+      return `<li data-id="${id}" style="--c:${TIERS[r.tier].color}">${emblem(r.tier, r.sub)}
+        <div class="grow"><div class="head"><b>${ex.name}</b><span class="tier">${label(r.tier, r.sub)}</span></div>
         <small>${load(id, b.kg)} × ${b.reps} rep, 1RM ước tính ${fmt(r.oneRm)} kg</small>
-        ${bar(r.progress)}<small>${next(r, b.reps)}</small></div>
+        ${bar(r.progress, r.tier < TOP)}<small>${next(r, b.reps)}</small></div>
         <button class="del" data-del="${id}" aria-label="Xóa kỷ lục ${ex.name}">✕</button></li>`;
     }).join('');
 
     const o = overall(scores), t = o ? o.tier : 0, hero = $('overall');
     hero.style.setProperty('--c', o ? TIERS[t].color : '#3a414d');
     hero.classList.toggle('none', !o);
-    hero.innerHTML = `${emblem(t)}
-      <h2 class="tier-name">${o ? TIERS[t].name : 'Chưa có hạng'}</h2>
+    hero.innerHTML = `${emblem(t, o?.sub)}
+      <h2 class="tier-name">${o ? label(t, o.sub) : 'Chưa có hạng'}</h2>
       <p class="sub">${o ? `Hạng tổng, trung bình ${scores.length} bài` : state.bw ? 'Ghi mức tạ đầu tiên bên dưới để nhận hạng' : 'Nhập cân nặng để bắt đầu xếp hạng'}</p>
       ${state.bw ? '' : '<button id="start" class="primary" type="button">Nhập cân nặng</button>'}
       <div class="ladder" aria-hidden="true">${TIERS.map((_, i) => emblem(i).replace('class="emblem"', `class="emblem ${!o ? '' : i < t ? 'done' : i === t ? 'now' : ''}"`)).join('')}</div>
-      ${o ? `${bar(o.progress)}<small>${t < TIERS.length - 1 ? `Tiến độ lên ${TIERS[t + 1].name}: ${Math.round(o.progress * 100)}%` : 'Bạn đã ở hạng cao nhất'}</small>` : ''}`;
-    overallTier = o ? t : -1;
+      ${o ? `${bar(o.progress, t < TOP)}<small>${t < TOP ? `Tiến độ lên ${TIERS[t + 1].name}: ${Math.round(o.progress * 100)}%` : 'Bạn đã ở hạng cao nhất'}</small>` : ''}`;
+    overallNow = o;
   }
 
   function preview() {
@@ -259,15 +277,15 @@
     }
     const r = rate(id, state.sex, state.bw, kg, reps);
     $('preview').style.setProperty('--c', TIERS[r.tier].color);
-    $('preview').innerHTML = `${emblem(r.tier)}<div class="grow"><span class="tier" style="font-size:22px">${TIERS[r.tier].name}</span>
+    $('preview').innerHTML = `${emblem(r.tier, r.sub)}<div class="grow"><span class="tier" style="font-size:22px">${label(r.tier, r.sub)}</span>
       <small>1RM ước tính ${fmt(r.oneRm)} kg, gấp ${r.ratio.toLocaleString('vi-VN', { maximumFractionDigits: 2 })} lần cân nặng${reps > 10 ? '. Trên 10 rep thì ước tính kém chính xác.' : ''}</small>
-      ${bar(r.progress)}<small>${next(r, reps)}</small></div>`;
+      ${bar(r.progress, r.tier < TOP)}<small>${next(r, reps)}</small></div>`;
     return { id, kg, reps, r };
   }
 
-  function levelUp(t, label) {
-    $('levelup').style.setProperty('--c', TIERS[t].color);
-    $('luBody').innerHTML = `${emblem(t)}<p class="sub">${label}</p><h2 class="tier-name">${TIERS[t].name}</h2>`;
+  function levelUp(r, text) {
+    $('levelup').style.setProperty('--c', TIERS[r.tier].color);
+    $('luBody').innerHTML = `${emblem(r.tier, r.sub)}<p class="sub">${text}</p><h2 class="tier-name">${label(r.tier, r.sub)}</h2>`;
     $('levelup').showModal();
   }
 
@@ -286,13 +304,18 @@
     const old = b && rate(p.id, state.sex, state.bw, b.kg, b.reps);
     if (old && old.oneRm >= p.r.oneRm && !second('save', $('save'), `Thấp hơn kỷ lục ${load(p.id, b.kg)} × ${b.reps}. Bấm lần nữa để ghi đè`)) return;
     $('save').textContent = 'Lưu kỷ lục';
-    const before = overallTier;
+    const before = overallNow;
     state.best[p.id] = { kg: p.kg, reps: p.reps };
     persist();
     render();
-    $('msg').textContent = !old ? 'Đã lưu kỷ lục' : p.r.oneRm > old.oneRm ? 'Đã lưu kỷ lục mới 💪' : 'Đã lưu kỷ lục';
-    if (overallTier > before) levelUp(overallTier, before < 0 ? 'Hạng tổng đầu tiên của bạn' : 'Bạn đã lên hạng tổng');
-    else if (old && p.r.tier > old.tier) levelUp(p.r.tier, `${EXERCISES[p.id].name} lên hạng`);
+    const o = overallNow, name = EXERCISES[p.id].name;
+    let msg = !old ? 'Đã lưu kỷ lục' : p.r.oneRm > old.oneRm ? 'Đã lưu kỷ lục mới 💪' : 'Đã lưu kỷ lục';
+    // Lên rank lớn: màn hình chúc mừng. Lên bậc phụ: chỉ một dòng thông báo.
+    if (!before || o.tier > before.tier) levelUp(o, before ? 'Bạn đã lên hạng tổng' : 'Hạng tổng đầu tiên của bạn');
+    else if (old && p.r.tier > old.tier) levelUp(p.r, `${name} lên hạng`);
+    else if (level(o) > level(before)) msg = `Hạng tổng lên ${label(o.tier, o.sub)} 🎉`;
+    else if (old && level(p.r) > level(old)) msg = `${name} lên ${label(p.r.tier, p.r.sub)} 🎉`;
+    $('msg').textContent = msg;
     $('kg').value = $('reps').value = '';
     preview();
   };
