@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="GymRank" />
+  <meta name="theme-color" content="#0d1016" />
+  <title>GymRank</title>
+  <style>
+    :root { --bg:#0d1016; --card:#161b23; --line:#262d38; --text:#e9ecf1; --muted:#8b94a3; --accent:#6ea8ff; color-scheme:dark; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font:16px/1.4 system-ui,-apple-system,sans-serif; -webkit-tap-highlight-color:transparent; }
+    main { max-width:480px; margin:auto; padding:calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 24px); }
+    header { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+    h1 { margin:0; flex:1; font-size:24px; letter-spacing:.3px; }
+    h2 { margin:0; font-size:22px; }
+    h3 { margin:0 0 10px; font-size:16px; }
+    small { display:block; color:var(--muted); font-size:13px; }
+    button { font:inherit; color:inherit; border:0; cursor:pointer; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:18px; padding:14px; margin-bottom:14px; }
+    .flex { display:flex; gap:14px; align-items:center; }
+    .grow { flex:1; min-width:0; }
+    #me { background:var(--card); border:1px solid var(--line); border-radius:999px; padding:6px 12px; font-size:14px; }
+
+    .badge { --c:#555; flex:none; width:52px; aspect-ratio:1; display:grid; place-items:center; font-weight:800; color:#0d1016;
+      clip-path:polygon(50% 0,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%);
+      background:linear-gradient(160deg,color-mix(in srgb,var(--c),#fff 40%),var(--c) 55%,color-mix(in srgb,var(--c),#000 45%)); }
+    .badge.big { width:92px; font-size:26px; }
+    .badge.none { --c:#3a414d; color:var(--muted); }
+
+    .bar { height:8px; border-radius:99px; background:var(--line); overflow:hidden; margin:6px 0 4px; }
+    .bar i { display:block; height:100%; background:var(--c); border-radius:inherit; transition:width .4s; }
+
+    label { display:block; font-size:13px; color:var(--muted); }
+    select, input[type=number] { width:100%; margin-top:4px; padding:12px; font:inherit; font-size:16px; color:var(--text);
+      background:var(--bg); border:1px solid var(--line); border-radius:12px; }
+    .row { display:flex; gap:10px; margin:10px 0; }
+    .row label { flex:1; }
+    #preview { min-height:52px; margin-bottom:10px; }
+    .primary { width:100%; padding:13px; border-radius:12px; background:var(--accent); color:#0d1016; font-weight:700; }
+    .primary:disabled { opacity:.35; }
+    #msg { text-align:center; font-weight:600; margin-top:8px; min-height:1.4em; }
+
+    ul { list-style:none; margin:0; padding:0; display:grid; gap:10px; }
+    li { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:12px; cursor:pointer; }
+    li.empty b { color:var(--muted); }
+    .del { background:none; color:var(--muted); padding:6px 8px; font-size:15px; }
+
+    dialog { width:min(92vw,380px); background:var(--card); color:var(--text); border:1px solid var(--line); border-radius:18px; padding:18px; }
+    dialog::backdrop { background:#000a; }
+    fieldset { border:0; padding:0; margin:12px 0; display:flex; gap:10px; }
+    fieldset label { flex:1; text-align:center; padding:11px; border:1px solid var(--line); border-radius:12px; color:var(--text); font-size:16px; }
+    fieldset label:has(input:checked) { border-color:var(--accent); background:color-mix(in srgb,var(--accent),transparent 85%); }
+    fieldset input { display:none; }
+    footer { margin-top:18px; text-align:center; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>GymRank</h1>
+    <button id="me" type="button" aria-label="Sửa thông tin cá nhân">⚙️</button>
+  </header>
+
+  <section id="overall" class="card flex" aria-live="polite"></section>
+
+  <section class="card">
+    <h3>Ghi mức tạ</h3>
+    <label>Bài tập <select id="ex"></select></label>
+    <div class="row">
+      <label><span id="kgLabel">Tạ (kg)</span><input id="kg" type="number" inputmode="decimal" step="0.5" /></label>
+      <label>Số rep<input id="reps" type="number" inputmode="numeric" min="1" max="30" step="1" /></label>
+    </div>
+    <div id="preview" class="flex"></div>
+    <button id="save" class="primary" type="button" disabled>Lưu kỷ lục</button>
+    <div id="msg" aria-live="polite"></div>
+  </section>
+
+  <ul id="list"></ul>
+
+  <footer><small>Ngưỡng xếp hạng là ước tính tham khảo, không phải chuẩn chính thức. 1RM tính theo công thức Epley.</small></footer>
+</main>
+
+<dialog id="profile">
+  <form method="dialog">
+    <h2>Thông tin của bạn</h2>
+    <small>Dùng để tính sức mạnh so với cân nặng.</small>
+    <fieldset>
+      <label><input type="radio" name="sex" value="m" checked />Nam</label>
+      <label><input type="radio" name="sex" value="f" />Nữ</label>
+    </fieldset>
+    <label>Cân nặng (kg)<input id="bw" type="number" inputmode="decimal" min="30" max="250" step="0.1" required /></label>
+    <button class="primary" style="margin-top:14px">Xong</button>
+  </form>
+</dialog>
+
+<script type="module">
+  import { TIERS, EXERCISES, rate, overall } from './rank.js';
+
+  const $ = id => document.getElementById(id);
+  const KEY = 'gymrank';
+  const state = { sex: 'm', bw: 0, best: {} };
+  try { Object.assign(state, JSON.parse(localStorage.getItem(KEY))); } catch {}
+  const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
+
+  const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
+  const fmt = n => (Math.round(n * 10) / 10).toLocaleString('vi-VN');
+  const badge = (t, big = '') => `<span class="badge ${big}" style="--c:${TIERS[t].color}">${ROMAN[t]}</span>`;
+  const bar = r => `<div class="bar" style="--c:${TIERS[r.tier].color}"><i style="width:${r.progress * 100}%"></i></div>`;
+  const load = (id, kg) => !EXERCISES[id].bw ? `${fmt(kg)} kg` : kg ? `BW ${kg > 0 ? '+' : '−'}${fmt(Math.abs(kg))} kg` : 'BW';
+  const next = (r, reps) => r.next ? `Thêm ${fmt(r.next.kg)} kg × ${reps} rep → ${TIERS[r.next.tier].name}` : 'Hạng cao nhất! 🔥';
+
+  function render() {
+    $('me').textContent = state.bw ? `${state.sex === 'f' ? 'Nữ' : 'Nam'} · ${fmt(state.bw)} kg ⚙️` : '⚙️';
+    const scores = [];
+    $('list').innerHTML = Object.entries(EXERCISES).map(([id, ex]) => {
+      const b = state.best[id];
+      if (!b || !state.bw) return `<li class="flex empty" data-id="${id}"><span class="badge none">–</span>
+        <div class="grow"><b>${ex.name}</b><small>Chưa có, chạm để ghi</small></div></li>`;
+      const r = rate(id, state.sex, state.bw, b.kg, b.reps);
+      scores.push(r.score);
+      return `<li class="flex" data-id="${id}">${badge(r.tier)}
+        <div class="grow"><b>${ex.name}</b><small>${TIERS[r.tier].name} · ${load(id, b.kg)} × ${b.reps} · 1RM ≈ ${fmt(r.oneRm)} kg</small>
+        ${bar(r)}<small>${next(r, b.reps)}</small></div>
+        <button class="del" data-del="${id}" aria-label="Xóa kỷ lục ${ex.name}">✕</button></li>`;
+    }).join('');
+    const o = overall(scores);
+    $('overall').innerHTML = o
+      ? `${badge(o.tier, 'big')}<div class="grow"><small>Hạng tổng</small><h2>${TIERS[o.tier].name}</h2>${bar(o)}<small>Trung bình ${scores.length} bài</small></div>`
+      : `<span class="badge big none">?</span><div class="grow"><small>Hạng tổng</small><h2>Chưa xếp hạng</h2><small>Ghi ít nhất một bài để có hạng</small></div>`;
+  }
+
+  function preview() {
+    const id = $('ex').value, kg = parseFloat($('kg').value), reps = Number($('reps').value);
+    const bw = EXERCISES[id].bw;
+    $('kgLabel').textContent = bw ? 'Tạ đeo thêm (kg)' : 'Tạ (kg)';
+    const ok = state.bw > 0 && Number.isFinite(kg) && Number.isInteger(reps) && reps >= 1 && reps <= 30 && (bw ? state.bw + kg > 0 : kg > 0);
+    $('save').disabled = !ok;
+    if (!ok) {
+      $('preview').innerHTML = `<small>${state.bw ? (bw ? 'Không đeo tạ thì nhập 0, dùng máy hỗ trợ thì nhập số âm. Số rep từ 1 đến 30.' : 'Nhập số kg và số rep (1–30).') : 'Nhập cân nặng ở nút ⚙️ trước.'}</small>`;
+      return null;
+    }
+    const r = rate(id, state.sex, state.bw, kg, reps);
+    $('preview').innerHTML = `${badge(r.tier)}<div class="grow"><b>${TIERS[r.tier].name}</b>
+      <small>1RM ≈ ${fmt(r.oneRm)} kg · ${r.ratio.toLocaleString('vi-VN', { maximumFractionDigits: 2 })}× cân nặng${reps > 10 ? ' · trên 10 rep thì ước tính kém chính xác' : ''}</small>
+      ${bar(r)}<small>${next(r, reps)}</small></div>`;
+    return { id, kg, reps, r };
+  }
+
+  $('ex').innerHTML = Object.entries(EXERCISES).map(([id, e]) => `<option value="${id}">${e.name}</option>`).join('');
+  for (const el of [$('ex'), $('kg'), $('reps')]) el.addEventListener('input', () => { $('msg').textContent = ''; preview(); });
+
+  $('save').onclick = () => {
+    const p = preview();
+    if (!p) return;
+    const b = state.best[p.id];
+    const old = b && rate(p.id, state.sex, state.bw, b.kg, b.reps);
+    if (old && old.oneRm >= p.r.oneRm && !confirm(`Thấp hơn kỷ lục hiện tại (${load(p.id, b.kg)} × ${b.reps}). Vẫn ghi đè?`)) return;
+    state.best[p.id] = { kg: p.kg, reps: p.reps };
+    persist();
+    render();
+    $('msg').textContent = !old ? 'Đã lưu ✅' : p.r.tier > old.tier ? `Lên hạng ${TIERS[p.r.tier].name}! 🎉` : p.r.oneRm > old.oneRm ? 'Kỷ lục mới 💪' : 'Đã lưu';
+    $('kg').value = $('reps').value = '';
+    preview();
+  };
+
+  $('list').onclick = e => {
+    const del = e.target.closest('[data-del]');
+    if (del) {
+      if (confirm('Xóa kỷ lục bài này?')) { delete state.best[del.dataset.del]; persist(); render(); }
+      return;
+    }
+    const li = e.target.closest('[data-id]');
+    if (!li) return;
+    $('ex').value = li.dataset.id;
+    $('msg').textContent = '';
+    preview();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    $('kg').focus();
+  };
+
+  const dlg = $('profile');
+  const openProfile = () => {
+    dlg.querySelector(`input[value="${state.sex}"]`).checked = true;
+    $('bw').value = state.bw || '';
+    dlg.showModal();
+  };
+  $('me').onclick = openProfile;
+  dlg.addEventListener('close', () => {
+    const bw = parseFloat($('bw').value);
+    if (bw >= 30 && bw <= 250) state.bw = bw;
+    state.sex = dlg.querySelector('input[name=sex]:checked').value;
+    persist();
+    render();
+    preview();
+  });
+
+  render();
+  preview();
+  if (!state.bw) openProfile();
+</script>
+</body>
+</html>
