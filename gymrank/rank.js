@@ -35,10 +35,13 @@ const factor = reps => (reps <= 1 ? 1 : 1 + reps / 30);
 export const e1rm = (kg, reps) => kg * factor(reps);
 const subOf = (tier, progress) => (tier < TOP ? Math.min(Math.floor(progress * SUBS.length), SUBS.length - 1) : 0);
 
+// Ngưỡng tỉ lệ để vào từng rank (rank 0 = 0).
+export const thresholds = (id, sex) => [0, ...EXERCISES[id].std.map(t => (sex === 'f' ? t * EXERCISES[id].f : t))];
+
 // ponytail: tỉ lệ thẳng 1RM/cân nặng nên người nặng cân hơi thiệt; đổi sang hệ số DOTS/allometric nếu cần công bằng hơn.
 export function rate(id, sex, bw, kg, reps) {
   const ex = EXERCISES[id];
-  const th = [0, ...ex.std.map(t => (sex === 'f' ? t * ex.f : t))];
+  const th = thresholds(id, sex);
   const load = ex.bw ? bw + kg : kg;
   const oneRm = e1rm(load, reps);
   const ratio = oneRm / bw;

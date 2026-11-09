@@ -46,7 +46,9 @@
       background:radial-gradient(110% 65% at 50% 28%,color-mix(in srgb,var(--c) 30%,transparent),transparent 70%),var(--panel); }
     .hero > .emblem { width:150px; margin:0 auto 6px; filter:drop-shadow(0 10px 26px color-mix(in srgb,var(--c) 55%,transparent)); }
     .hero .bar { margin-top:14px; }
-    .ladder { display:flex; justify-content:space-between; align-items:center; margin-top:18px; padding:0 4px; }
+    .ladder { display:flex; justify-content:space-between; align-items:center; width:100%; margin-top:18px; padding:10px 8px;
+      background:#ffffff08; border:1px solid var(--line); border-radius:14px; }
+    .ladder + small { margin-top:6px; }
     .ladder .emblem { width:30px; opacity:.22; filter:grayscale(1); }
     .ladder .done { opacity:.65; filter:none; }
     .ladder .now { width:42px; opacity:1; filter:drop-shadow(0 0 8px color-mix(in srgb,var(--c) 70%,transparent)); }
@@ -57,10 +59,30 @@
     label { display:block; font-size:13px; color:var(--muted); }
     select, input[type=number] { width:100%; margin-top:4px; padding:12px; font:inherit; font-size:16px; color:var(--text);
       background:var(--bg); border:1px solid var(--line); border-radius:12px; }
-    .row { display:flex; gap:10px; margin:10px 0 14px; }
-    .row label { flex:1; }
-    #preview { min-height:64px; margin-bottom:14px; }
-    #preview > .emblem { width:64px; }
+    .chips { display:flex; gap:8px; overflow-x:auto; margin:0 -16px 14px; padding:2px 16px; scrollbar-width:none; }
+    .chips::-webkit-scrollbar { display:none; }
+    .chips label { position:relative; flex:none; padding:9px 14px; border:1px solid var(--line); border-radius:999px; color:var(--text); font-size:15px; }
+    .chips label:has(input:checked) { background:var(--text); border-color:var(--text); color:var(--bg); font-weight:600; }
+    .chips label:has(input:focus-visible) { outline:2px solid var(--text); outline-offset:2px; }
+    .chips input { position:absolute; opacity:0; pointer-events:none; }
+    .row { display:flex; gap:10px; margin:0 0 14px; }
+    .field { flex:1; min-width:0; }
+    .stepper { display:flex; align-items:center; margin-top:4px; background:var(--bg); border:1px solid var(--line); border-radius:14px; }
+    .stepper:focus-within { border-color:var(--muted); }
+    .stepper button { flex:none; width:44px; height:58px; background:none; color:var(--muted); font-size:26px; line-height:1; }
+    .stepper input[type=number] { flex:1; min-width:0; margin:0; padding:0; border:0; background:none; text-align:center;
+      font:800 32px/1 var(--display); appearance:textfield; -moz-appearance:textfield; }
+    .stepper input::-webkit-inner-spin-button { appearance:none; }
+    .stepper input:focus-visible { outline:none; }
+    #preview { min-height:92px; margin-bottom:14px; padding:12px; border-radius:16px;
+      background:color-mix(in srgb,var(--c) 12%,var(--bg)); border:1px solid color-mix(in srgb,var(--c) 35%,var(--line)); }
+    #preview > .emblem { width:72px; }
+    #tiersList li { cursor:default; padding:8px 10px; border-radius:12px; }
+    #tiersList li + li { border-top:0; }
+    #tiersList .emblem { width:46px; }
+    #tiersList .mine { background:color-mix(in srgb,var(--c) 16%,transparent); outline:1px solid color-mix(in srgb,var(--c) 50%,transparent); }
+    #tiersList .tier { font-size:20px; }
+    #tiers small { margin:6px 0 10px; }
     .primary { width:100%; padding:14px; border-radius:14px; background:var(--text); color:var(--bg); font-weight:700; }
     .primary:disabled { opacity:.3; }
     #msg { text-align:center; font-weight:600; margin-top:10px; min-height:1.4em; }
@@ -108,10 +130,16 @@
 
   <section class="panel">
     <h3>Ghi mức tạ</h3>
-    <label>Bài tập <select id="ex"></select></label>
-    <div class="row">
-      <label><span id="kgLabel">Tạ (kg)</span><input id="kg" type="number" inputmode="decimal" step="0.5" /></label>
-      <label>Số rep<input id="reps" type="number" inputmode="numeric" min="1" max="30" step="1" /></label>
+    <div id="ex" class="chips" role="radiogroup" aria-label="Bài tập"></div>
+    <div class="row" id="fields">
+      <div class="field"><label for="kg" id="kgLabel">Tạ (kg)</label>
+        <div class="stepper"><button type="button" data-for="kg" data-step="-2.5" aria-label="Giảm 2,5 kg">−</button>
+          <input id="kg" type="number" inputmode="decimal" step="0.5" placeholder="0" />
+          <button type="button" data-for="kg" data-step="2.5" aria-label="Tăng 2,5 kg">+</button></div></div>
+      <div class="field"><label for="reps">Số rep</label>
+        <div class="stepper"><button type="button" data-for="reps" data-step="-1" aria-label="Giảm 1 rep">−</button>
+          <input id="reps" type="number" inputmode="numeric" min="1" max="30" step="1" placeholder="0" />
+          <button type="button" data-for="reps" data-step="1" aria-label="Tăng 1 rep">+</button></div></div>
     </div>
     <div id="preview" class="flex"></div>
     <button id="save" class="primary" type="button" disabled>Lưu kỷ lục</button>
@@ -139,6 +167,15 @@
   </form>
 </dialog>
 
+<dialog id="tiers">
+  <form method="dialog">
+    <h2>Các bậc rank</h2>
+    <small id="tiersSub"></small>
+    <ul id="tiersList"></ul>
+    <button class="primary" style="margin-top:12px">Đóng</button>
+  </form>
+</dialog>
+
 <dialog id="levelup">
   <form method="dialog">
     <div id="luBody"></div>
@@ -147,7 +184,7 @@
 </dialog>
 
 <script type="module">
-  import { TIERS, SUBS, TOP, EXERCISES, rate, overall, label } from './rank.js';
+  import { TIERS, SUBS, TOP, EXERCISES, thresholds, rate, overall, label } from './rank.js';
 
   const $ = id => document.getElementById(id);
   const KEY = 'gymrank';
@@ -228,6 +265,7 @@
     </svg>`;
   }
 
+  const exId = () => document.querySelector('#ex input:checked').value;
   const fmt = n => (Math.round(n * 10) / 10).toLocaleString('vi-VN');
   // seg: thanh chia 3 khúc ứng với 3 bậc phụ
   const bar = (p, seg) => `<div class="bar${seg ? ' seg' : ''}"><i style="width:${p * 100}%"></i></div>`;
@@ -259,13 +297,14 @@
       <h2 class="tier-name">${o ? label(t, o.sub) : 'Chưa có hạng'}</h2>
       <p class="sub">${o ? `Hạng tổng, trung bình ${scores.length} bài` : state.bw ? 'Ghi mức tạ đầu tiên bên dưới để nhận hạng' : 'Nhập cân nặng để bắt đầu xếp hạng'}</p>
       ${state.bw ? '' : '<button id="start" class="primary" type="button">Nhập cân nặng</button>'}
-      <div class="ladder" aria-hidden="true">${TIERS.map((_, i) => emblem(i).replace('class="emblem"', `class="emblem ${!o ? '' : i < t ? 'done' : i === t ? 'now' : ''}"`)).join('')}</div>
+      <button class="ladder" type="button" aria-label="Xem yêu cầu từng rank">${TIERS.map((_, i) => emblem(i).replace('class="emblem"', `class="emblem ${!o ? '' : i < t ? 'done' : i === t ? 'now' : ''}"`)).join('')}</button>
+      <small>Chạm vào dãy huy hiệu để xem yêu cầu từng rank</small>
       ${o ? `${bar(o.progress, t < TOP)}<small>${t < TOP ? `Tiến độ lên ${TIERS[t + 1].name}: ${Math.round(o.progress * 100)}%` : 'Bạn đã ở hạng cao nhất'}</small>` : ''}`;
     overallNow = o;
   }
 
   function preview() {
-    const id = $('ex').value, kg = parseFloat($('kg').value), reps = Number($('reps').value);
+    const id = exId(), kg = parseFloat($('kg').value), reps = Number($('reps').value);
     const bw = EXERCISES[id].bw;
     $('kgLabel').textContent = bw ? 'Tạ đeo thêm (kg)' : 'Tạ (kg)';
     const ok = state.bw > 0 && Number.isFinite(kg) && Number.isInteger(reps) && reps >= 1 && reps <= 30 && (bw ? state.bw + kg > 0 : kg > 0);
@@ -289,13 +328,46 @@
     $('levelup').showModal();
   }
 
-  $('ex').innerHTML = Object.entries(EXERCISES).map(([id, e]) => `<option value="${id}">${e.name}</option>`).join('');
-  for (const el of [$('ex'), $('kg'), $('reps')]) el.addEventListener('input', () => {
+  $('ex').innerHTML = Object.entries(EXERCISES).map(([id, e], i) =>
+    `<label><input type="radio" name="ex" value="${id}"${i ? '' : ' checked'} />${e.name.split(' (')[0]}</label>`).join('');
+  const changed = () => {
     $('msg').textContent = '';
     armed = '';
     $('save').textContent = 'Lưu kỷ lục';
     preview();
-  });
+  };
+  // Đổi bài: điền sẵn kỷ lục của bài đó để bấm +/− từ đấy, chưa có thì để trống.
+  const prefill = () => { const b = state.best[exId()]; $('kg').value = b ? b.kg : ''; $('reps').value = b ? b.reps : ''; };
+  const pick = id => { document.querySelector(`#ex input[value="${id}"]`).checked = true; prefill(); changed(); };
+  $('ex').addEventListener('input', () => { prefill(); changed(); });
+  $('kg').addEventListener('input', changed);
+  $('reps').addEventListener('input', changed);
+  $('fields').onclick = e => {
+    const b = e.target.closest('[data-step]');
+    if (!b) return;
+    const el = $(b.dataset.for), v = (parseFloat(el.value) || 0) + Number(b.dataset.step);
+    el.value = b.dataset.for === 'reps' ? Math.min(30, Math.max(1, v)) : EXERCISES[exId()].bw ? v : Math.max(0, v);
+    changed();
+  };
+
+  function openTiers() {
+    const id = exId(), ex = EXERCISES[id], th = thresholds(id, state.sex), bw = state.bw, b = state.best[id];
+    const mine = b && bw ? rate(id, state.sex, bw, b.kg, b.reps).tier : -1;
+    const half = n => Math.ceil(n * 2 - 1e-9) / 2;
+    $('tiersSub').textContent = bw
+      ? `Mức cần đạt với ${ex.name}, tính cho 1 rep ở cân nặng ${fmt(bw)} kg. Muốn xem bài khác thì chọn bài ở phần Ghi mức tạ.`
+      : `Mức cần đạt với ${ex.name}, tính theo số lần cân nặng. Nhập cân nặng để xem ra kg.`;
+    $('tiersList').innerHTML = TIERS.map((t, i) => {
+      const add = half(th[i] * bw - bw);
+      const need = !i ? 'Điểm xuất phát' : !bw ? `Từ ${th[i].toLocaleString('vi-VN', { maximumFractionDigits: 2 })} lần cân nặng`
+        : !ex.bw ? `Từ ${fmt(half(th[i] * bw))} kg`
+        : add > 0 ? `Đeo thêm từ ${fmt(add)} kg` : add < 0 ? `Máy hỗ trợ tối đa ${fmt(-add)} kg` : 'Không đeo tạ';
+      return `<li class="${i === mine ? 'mine' : ''}" style="--c:${t.color}">${emblem(i)}
+        <div class="grow"><span class="tier">${t.name}</span><small style="margin:2px 0 0">${need}${i === mine ? '. Kỷ lục của bạn đang ở đây' : ''}</small></div></li>`;
+    }).reverse().join('');
+    $('tiers').showModal();
+    $('tiers').scrollTop = 0;
+  }
 
   $('save').onclick = () => {
     const p = preview();
@@ -315,9 +387,8 @@
     else if (old && p.r.tier > old.tier) levelUp(p.r, `${name} lên hạng`);
     else if (level(o) > level(before)) msg = `Hạng tổng lên ${label(o.tier, o.sub)} 🎉`;
     else if (old && level(p.r) > level(old)) msg = `${name} lên ${label(p.r.tier, p.r.sub)} 🎉`;
-    $('msg').textContent = msg;
-    $('kg').value = $('reps').value = '';
     preview();
+    $('msg').textContent = msg;
   };
 
   $('list').onclick = e => {
@@ -328,9 +399,7 @@
     }
     const li = e.target.closest('[data-id]');
     if (!li) return;
-    $('ex').value = li.dataset.id;
-    $('msg').textContent = '';
-    preview();
+    pick(li.dataset.id);
     $('ex').scrollIntoView({ behavior: 'smooth', block: 'center' });
     $('kg').focus({ preventScroll: true });
   };
@@ -342,7 +411,7 @@
     dlg.showModal();
   };
   $('me').onclick = openProfile;
-  $('overall').onclick = e => e.target.closest('#start') && openProfile();
+  $('overall').onclick = e => (e.target.closest('#start') ? openProfile() : e.target.closest('.ladder') && openTiers());
   dlg.addEventListener('close', () => {
     const bw = parseFloat($('bw').value);
     if (bw >= 30 && bw <= 250) state.bw = bw;
