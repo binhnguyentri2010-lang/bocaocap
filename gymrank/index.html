@@ -9,10 +9,12 @@
   <meta name="apple-mobile-web-app-title" content="GymRank" />
   <meta name="theme-color" content="#101318" />
   <title>GymRank</title>
+  <link rel="apple-touch-icon" href="icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&display=swap" />
   <style>
+    /* Một trang: rank tổng nằm ngang → 5 nhóm cơ (vừa là rank nhóm, vừa là bộ lọc) → ghi mức tạ → bài của nhóm đang chọn. */
     :root { --bg:#101318; --panel:#181c23; --line:#272d37; --text:#eef0f3; --muted:#8c95a3; --c:#3a414d;
       --display:'Big Shoulders Display', system-ui, sans-serif; color-scheme:dark; }
     :root { padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); background:var(--bg); }
@@ -32,39 +34,49 @@
     #me { background:var(--panel); border:1px solid var(--line); border-radius:999px; padding:7px 14px; font-size:14px; }
 
     .emblem { display:block; flex:none; overflow:visible; }
-    .empty .emblem, .hero.none > .emblem { filter:grayscale(1); opacity:.3; }
-    .tier-name { margin:0; font:800 48px/1 var(--display); letter-spacing:.03em; text-transform:uppercase; color:color-mix(in srgb,var(--c),#fff 35%); }
+    .empty .emblem, .hero.none .top .emblem { filter:grayscale(1); opacity:.3; }
+    .tier-name { margin:0; font:800 40px/1 var(--display); letter-spacing:.03em; text-transform:uppercase; color:color-mix(in srgb,var(--c),#fff 35%); }
     .tier { font:800 16px/1 var(--display); letter-spacing:.04em; text-transform:uppercase; color:color-mix(in srgb,var(--c),#fff 25%); white-space:nowrap; }
     .sub { margin:6px 0 0; color:var(--muted); font-size:14px; }
 
-    .bar { height:8px; border-radius:99px; background:var(--line); overflow:hidden; margin:8px 0 5px; }
+    .bar { position:relative; height:8px; border-radius:99px; background:var(--line); overflow:hidden; margin:8px 0 5px; }
     .bar i { display:block; height:100%; border-radius:inherit; transition:width .5s;
       background:linear-gradient(90deg,color-mix(in srgb,var(--c),#000 25%),color-mix(in srgb,var(--c),#fff 30%)); }
-
-    /* Ô hạng tổng: huy hiệu đứng giữa "sân khấu" ánh màu của hạng */
-    .hero { text-align:center; padding:24px 18px 18px; border-color:color-mix(in srgb,var(--c) 40%,var(--line));
-      background:radial-gradient(110% 65% at 50% 28%,color-mix(in srgb,var(--c) 30%,transparent),transparent 70%),var(--panel); }
-    .hero > .emblem { width:150px; margin:0 auto 6px; filter:drop-shadow(0 10px 26px color-mix(in srgb,var(--c) 55%,transparent)); }
-    .hero .bar { margin-top:14px; }
-    .ladder { display:flex; justify-content:space-between; align-items:center; width:100%; margin-top:18px; padding:10px 8px;
-      background:#ffffff08; border:1px solid var(--line); border-radius:14px; }
-    .ladder + small { margin-top:6px; }
-    .ladder .emblem { width:30px; opacity:.22; filter:grayscale(1); }
-    .ladder .done { opacity:.65; filter:none; }
-    .ladder .now { width:42px; opacity:1; filter:drop-shadow(0 0 8px color-mix(in srgb,var(--c) 70%,transparent)); }
-    .bar.seg { position:relative; }
+    /* seg: thanh chia 3 khúc ứng với 3 bậc phụ */
     .bar.seg::after { content:""; position:absolute; inset:0;
       background:linear-gradient(90deg,transparent calc(100%/3 - 1.5px),var(--panel) 0 calc(100%/3 + 1.5px),transparent 0 calc(200%/3 - 1.5px),var(--panel) 0 calc(200%/3 + 1.5px),transparent 0); }
 
-    label { display:block; font-size:13px; color:var(--muted); }
-    select, input[type=number] { width:100%; margin-top:4px; padding:12px; font:inherit; font-size:16px; color:var(--text);
-      background:var(--bg); border:1px solid var(--line); border-radius:12px; }
+    /* Rank tổng */
+    .hero { border-color:color-mix(in srgb,var(--c) 40%,var(--line));
+      background:radial-gradient(70% 120% at 12% 30%,color-mix(in srgb,var(--c) 28%,transparent),transparent 70%),var(--panel); }
+    .hero .top .emblem { width:92px; filter:drop-shadow(0 6px 16px color-mix(in srgb,var(--c) 55%,transparent)); }
+    .hero .primary { margin-top:14px; }
+    .ladder { display:flex; justify-content:space-between; align-items:center; width:100%; margin-top:14px; padding:8px;
+      background:#ffffff08; border:1px solid var(--line); border-radius:14px; }
+    .ladder .emblem { width:28px; opacity:.22; filter:grayscale(1); }
+    .ladder .done { opacity:.65; filter:none; }
+    .ladder .now { width:38px; opacity:1; filter:drop-shadow(0 0 8px color-mix(in srgb,var(--c) 70%,transparent)); }
+    .ladder + small { margin-top:6px; text-align:center; }
+
+    /* 5 nhóm cơ */
+    .groups { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-bottom:14px; }
+    .groups label { position:relative; display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px 2px 7px;
+      background:var(--panel); border:1px solid var(--line); border-radius:14px; color:var(--muted); font-size:13px; }
+    .groups .emblem { width:42px; }
+    .groups label:has(input:checked) { color:var(--text); font-weight:600; border-color:color-mix(in srgb,var(--c),#fff 20%);
+      background:color-mix(in srgb,var(--c) 16%,var(--panel)); }
+    .groups label.empty:has(input:checked) { border-color:var(--muted); }
+
+    /* Ghi mức tạ */
+    .groups input, .chips input, fieldset input { position:absolute; opacity:0; pointer-events:none; }
+    label:has(input[type=radio]:focus-visible) { outline:2px solid var(--text); outline-offset:2px; }
     .chips { display:flex; gap:8px; overflow-x:auto; margin:0 -16px 14px; padding:2px 16px; scrollbar-width:none; }
     .chips::-webkit-scrollbar { display:none; }
     .chips label { position:relative; flex:none; padding:9px 14px; border:1px solid var(--line); border-radius:999px; color:var(--text); font-size:15px; }
     .chips label:has(input:checked) { background:var(--text); border-color:var(--text); color:var(--bg); font-weight:600; }
-    .chips label:has(input:focus-visible) { outline:2px solid var(--text); outline-offset:2px; }
-    .chips input { position:absolute; opacity:0; pointer-events:none; }
+    label { display:block; font-size:13px; color:var(--muted); }
+    input[type=number] { width:100%; margin-top:4px; padding:12px; font:inherit; font-size:16px; color:var(--text);
+      background:var(--bg); border:1px solid var(--line); border-radius:12px; }
     .row { display:flex; gap:10px; margin:0 0 14px; }
     .field { flex:1; min-width:0; }
     .stepper { display:flex; align-items:center; margin-top:4px; background:var(--bg); border:1px solid var(--line); border-radius:14px; }
@@ -77,41 +89,52 @@
     #preview { min-height:92px; margin-bottom:14px; padding:12px; border-radius:16px;
       background:color-mix(in srgb,var(--c) 12%,var(--bg)); border:1px solid color-mix(in srgb,var(--c) 35%,var(--line)); }
     #preview > .emblem { width:72px; }
-    #tiersList li { cursor:default; padding:8px 10px; border-radius:12px; }
-    #tiersList li + li { border-top:0; }
-    #tiersList .emblem { width:46px; }
-    #tiersList .mine { background:color-mix(in srgb,var(--c) 16%,transparent); outline:1px solid color-mix(in srgb,var(--c) 50%,transparent); }
-    #tiersList .tier { font-size:20px; }
-    #tiers small { margin:6px 0 10px; }
     .primary { width:100%; padding:14px; border-radius:14px; background:var(--text); color:var(--bg); font-weight:700; }
     .primary:disabled { opacity:.3; }
     #msg { text-align:center; font-weight:600; margin-top:10px; min-height:1.4em; }
 
+    /* Danh sách dạng dòng: bài tập, lịch sử, bảng rank */
     ul { list-style:none; margin:0; padding:0; }
-    li { display:flex; gap:12px; align-items:center; padding:12px 0; cursor:pointer; }
+    li { display:flex; gap:12px; align-items:center; padding:12px 0; }
     li + li { border-top:1px solid var(--line); }
     li > .emblem { width:52px; }
     li .head { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+    #list li { cursor:pointer; }
     li.empty b { color:var(--muted); font-weight:500; }
-    .del { background:none; color:var(--muted); padding:8px; font-size:15px; }
+    .more { flex:none; width:36px; height:44px; background:none; color:var(--muted); font-size:26px; line-height:1; }
+    .del { flex:none; background:none; color:var(--muted); padding:8px; font-size:14px; }
+    .tiers li { padding:8px 10px; border-radius:12px; border-top:0; }
+    .tiers .emblem { width:46px; }
+    .tiers .mine { background:color-mix(in srgb,var(--c) 16%,transparent); outline:1px solid color-mix(in srgb,var(--c) 50%,transparent); }
+    .tiers .tier { font-size:20px; }
 
-    dialog { width:min(92vw,380px); background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:22px; padding:20px; }
+    dialog { width:min(92vw,420px); background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:22px; padding:20px; }
     dialog::backdrop { background:#000b; }
-    dialog h2 { margin:0; font:800 30px/1.1 var(--display); }
+    dialog h2 { margin:0; font:800 30px/1.1 var(--display); text-wrap:balance; }
+    dialog h3 { margin:20px 0 6px; }
+    dialog .primary { margin-top:16px; }
     fieldset { border:0; padding:0; margin:14px 0; display:flex; gap:10px; }
-    fieldset label { flex:1; text-align:center; padding:11px; border:1px solid var(--line); border-radius:12px; color:var(--text); font-size:16px; }
+    fieldset label { position:relative; flex:1; text-align:center; padding:11px; border:1px solid var(--line); border-radius:12px; color:var(--text); font-size:16px; }
     fieldset label:has(input:checked) { border-color:var(--text); background:#ffffff14; }
-    fieldset input { position:absolute; opacity:0; pointer-events:none; }
-    fieldset label:has(input:focus-visible) { outline:2px solid var(--text); outline-offset:2px; }
-    .hero .primary { margin-top:16px; }
+    #tiers small { margin:6px 0 10px; }
+
+    /* Chi tiết bài: biểu đồ 1RM theo thời gian */
+    #detail .top .emblem { width:72px; }
+    .chart { display:block; width:100%; height:auto; font-variant-numeric:tabular-nums; }
+    .chart text { fill:var(--muted); font-size:10px; }
+    .chart .grid { stroke:var(--line); stroke-width:1; }
+    .chart .goal { stroke:var(--muted); stroke-width:1; }
+    .chart .lbl { paint-order:stroke; stroke:var(--panel); stroke-width:5px; stroke-linejoin:round; }
+    .chart .hit { fill:transparent; cursor:pointer; }
+    #read { min-height:2.8em; }
 
     /* Màn hình lên hạng: khoảnh khắc chuyển động duy nhất của app */
     #levelup { text-align:center; border-color:color-mix(in srgb,var(--c) 50%,var(--line));
       background:radial-gradient(90% 60% at 50% 35%,color-mix(in srgb,var(--c) 40%,transparent),transparent 72%),var(--panel); }
     #levelup .emblem { width:180px; margin:4px auto 8px; filter:drop-shadow(0 12px 30px color-mix(in srgb,var(--c) 60%,transparent)); }
+    #levelup .tier-name { font-size:48px; }
     #levelup[open] .emblem { animation:pop .8s cubic-bezier(.2,1.5,.4,1) both; }
     #levelup[open] .tier-name { animation:rise .5s .35s both; }
-    #levelup .primary { margin-top:20px; }
     @keyframes pop { from { transform:scale(.3) rotate(-15deg); opacity:0; } }
     @keyframes rise { from { transform:translateY(10px); opacity:0; } }
     @media (prefers-reduced-motion:reduce) { *, *::before { animation:none !important; transition:none !important; } }
@@ -128,30 +151,32 @@
 
   <section id="overall" class="panel hero" aria-live="polite"></section>
 
+  <div id="groups" class="groups" role="radiogroup" aria-label="Nhóm cơ"></div>
+
   <section class="panel">
     <h3>Ghi mức tạ</h3>
     <div id="ex" class="chips" role="radiogroup" aria-label="Bài tập"></div>
     <div class="row" id="fields">
       <div class="field"><label for="kg" id="kgLabel">Tạ (kg)</label>
-        <div class="stepper"><button type="button" data-for="kg" data-step="-2.5" aria-label="Giảm 2,5 kg">−</button>
+        <div class="stepper"><button type="button" data-for="kg" data-dir="-1" aria-label="Giảm tạ">−</button>
           <input id="kg" type="number" inputmode="decimal" step="0.5" placeholder="0" />
-          <button type="button" data-for="kg" data-step="2.5" aria-label="Tăng 2,5 kg">+</button></div></div>
+          <button type="button" data-for="kg" data-dir="1" aria-label="Tăng tạ">+</button></div></div>
       <div class="field"><label for="reps">Số rep</label>
-        <div class="stepper"><button type="button" data-for="reps" data-step="-1" aria-label="Giảm 1 rep">−</button>
+        <div class="stepper"><button type="button" data-for="reps" data-dir="-1" aria-label="Giảm 1 rep">−</button>
           <input id="reps" type="number" inputmode="numeric" min="1" max="30" step="1" placeholder="0" />
-          <button type="button" data-for="reps" data-step="1" aria-label="Tăng 1 rep">+</button></div></div>
+          <button type="button" data-for="reps" data-dir="1" aria-label="Tăng 1 rep">+</button></div></div>
     </div>
     <div id="preview" class="flex"></div>
-    <button id="save" class="primary" type="button" disabled>Lưu kỷ lục</button>
+    <button id="save" class="primary" type="button" disabled>Lưu mức tạ</button>
     <div id="msg" aria-live="polite"></div>
   </section>
 
   <section class="panel">
-    <h3>Kỷ lục từng bài</h3>
+    <h3 id="listTitle"></h3>
     <ul id="list"></ul>
   </section>
 
-  <footer><small>Ngưỡng xếp hạng là ước tính tham khảo, không phải chuẩn chính thức. 1RM tính theo công thức Epley.</small></footer>
+  <footer><small>Ngưỡng xếp hạng và hệ số giữa các bài là ước tính tham khảo, không phải chuẩn chính thức. 1RM tính theo công thức Epley.</small></footer>
 </main>
 
 <dialog id="profile">
@@ -163,7 +188,7 @@
       <label><input type="radio" name="sex" value="f" />Nữ</label>
     </fieldset>
     <label>Cân nặng (kg)<input id="bw" type="number" inputmode="decimal" min="30" max="250" step="0.1" required /></label>
-    <button class="primary" style="margin-top:16px">Xong</button>
+    <button class="primary">Xong</button>
   </form>
 </dialog>
 
@@ -171,8 +196,15 @@
   <form method="dialog">
     <h2>Các bậc rank</h2>
     <small id="tiersSub"></small>
-    <ul id="tiersList"></ul>
-    <button class="primary" style="margin-top:12px">Đóng</button>
+    <ul id="tiersList" class="tiers"></ul>
+    <button class="primary">Đóng</button>
+  </form>
+</dialog>
+
+<dialog id="detail">
+  <form method="dialog">
+    <div id="dBody"></div>
+    <button class="primary">Đóng</button>
   </form>
 </dialog>
 
@@ -184,15 +216,17 @@
 </dialog>
 
 <script type="module">
-  import { TIERS, SUBS, TOP, EXERCISES, thresholds, rate, overall, label } from './rank.js';
+  import { TIERS, SUBS, TOP, GROUPS, EXERCISES, thresholds, rate, migrate, standing, label } from './rank.js';
 
   const $ = id => document.getElementById(id);
   const KEY = 'gymrank';
-  const state = { sex: 'm', bw: 0, best: {} };
+  const state = { sex: 'm', bw: 0, log: [] };
   try { Object.assign(state, JSON.parse(localStorage.getItem(KEY))); } catch {}
+  migrate(state);
 
   // Trong Claude Artifact: lưu thêm vào kho riêng của tài khoản (data/users/<id>), mở máy khác vẫn còn.
   // Ngoài Artifact (GitHub Pages) window.claude không có, app chỉ dùng localStorage.
+  // ponytail: cả lịch sử nằm trong một tài liệu (giới hạn 256 KiB, đủ vài nghìn lần ghi); vượt thì tách theo năm.
   let remote = null, touched = false, writing = Promise.resolve();
   const persist = () => {
     touched = true;
@@ -209,19 +243,25 @@
       remote = ref;
       if (snap.exists && !touched) {
         Object.assign(state, structuredClone(snap.data()));
+        migrate(state);
         try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {}
+        const typing = $('kg').value || $('reps').value;
+        if (!typing) cur = lastId();
         render();
+        if (!typing) prefill();
         preview();
       } else if (touched || state.bw) persist();
     } catch {}
   })();
 
   // confirm() không chạy trong Artifact, nên xác nhận bằng cách bấm lần thứ hai.
-  let armed = '';
-  const second = (key, btn, label) => {
-    if (armed === key) { armed = ''; return true; }
-    armed = key;
-    btn.textContent = label;
+  let armed = '', armedBtn = null, armedText = '';
+  const disarm = () => { if (armedBtn?.isConnected) armedBtn.textContent = armedText; armed = ''; armedBtn = null; };
+  const second = (key, btn, ask) => {
+    if (armed === key) { disarm(); return true; }
+    disarm();
+    [armed, armedBtn, armedText] = [key, btn, btn.textContent];
+    btn.textContent = ask;
     return false;
   };
 
@@ -265,60 +305,83 @@
     </svg>`;
   }
 
-  const exId = () => document.querySelector('#ex input:checked').value;
+  // ---- Trạng thái giao diện: bài đang chọn (nhóm cơ đang chọn = nhóm của bài đó) và kết quả xếp hạng hiện tại ----
+  const lastId = () => state.log.findLast(e => EXERCISES[e.id])?.id ?? 'bench';
+  let cur = lastId(), st = standing(state);
+  const group = () => EXERCISES[cur].group;
+  const inGroup = g => Object.keys(EXERCISES).filter(id => EXERCISES[id].group === g);
+  const short = id => EXERCISES[id].name.split(' (')[0];
+
   const fmt = n => (Math.round(n * 10) / 10).toLocaleString('vi-VN');
-  // seg: thanh chia 3 khúc ứng với 3 bậc phụ
+  const day = (t, year) => new Date(t).toLocaleDateString('vi-VN', { day: 'numeric', month: 'numeric', ...(year && { year: '2-digit' }) });
   const bar = (p, seg) => `<div class="bar${seg ? ' seg' : ''}"><i style="width:${p * 100}%"></i></div>`;
-  const load = (id, kg) => !EXERCISES[id].bw ? `${fmt(kg)} kg` : kg ? `Cân nặng ${kg > 0 ? '+' : '−'} ${fmt(Math.abs(kg))} kg` : 'Cân nặng';
+  const load = (id, kg) => EXERCISES[id].each ? `${fmt(kg)} kg mỗi tay`
+    : !EXERCISES[id].bw ? `${fmt(kg)} kg` : kg ? `Cân nặng ${kg > 0 ? '+' : '−'} ${fmt(Math.abs(kg))} kg` : 'Cân nặng';
   const next = (r, reps) => r.next ? `Thêm ${fmt(r.next.kg)} kg × ${reps} rep để lên ${label(r.next.tier, r.next.sub)}` : 'Đã ở hạng cao nhất';
   const level = r => (r ? r.tier * SUBS.length + r.sub : -1);
 
-  let overallNow = null;
   function render() {
+    st = standing(state);
+    const focus = document.activeElement?.name;
     $('me').textContent = state.bw ? `${state.sex === 'f' ? 'Nữ' : 'Nam'}, ${fmt(state.bw)} kg` : 'Nhập cân nặng';
-    const scores = [];
-    $('list').innerHTML = Object.entries(EXERCISES).map(([id, ex]) => {
-      const b = state.best[id];
-      if (!b || !state.bw) return `<li class="empty" data-id="${id}">${emblem(0)}
-        <div class="grow"><b>${ex.name}</b><small>Chưa có kỷ lục. Chạm để ghi.</small></div></li>`;
-      const r = rate(id, state.sex, state.bw, b.kg, b.reps);
-      scores.push(r.score);
-      return `<li data-id="${id}" style="--c:${TIERS[r.tier].color}">${emblem(r.tier, r.sub)}
-        <div class="grow"><div class="head"><b>${ex.name}</b><span class="tier">${label(r.tier, r.sub)}</span></div>
-        <small>${load(id, b.kg)} × ${b.reps} rep, 1RM ước tính ${fmt(r.oneRm)} kg</small>
-        ${bar(r.progress, r.tier < TOP)}<small>${next(r, b.reps)}</small></div>
-        <button class="del" data-del="${id}" aria-label="Xóa kỷ lục ${ex.name}">✕</button></li>`;
-    }).join('');
 
-    const o = overall(scores), t = o ? o.tier : 0, hero = $('overall');
+    const o = st.overall, t = o ? o.tier : 0, hero = $('overall');
     hero.style.setProperty('--c', o ? TIERS[t].color : '#3a414d');
     hero.classList.toggle('none', !o);
-    hero.innerHTML = `${emblem(t, o?.sub)}
-      <h2 class="tier-name">${o ? label(t, o.sub) : 'Chưa có hạng'}</h2>
-      <p class="sub">${o ? `Hạng tổng, trung bình ${scores.length} bài` : state.bw ? 'Ghi mức tạ đầu tiên bên dưới để nhận hạng' : 'Nhập cân nặng để bắt đầu xếp hạng'}</p>
+    hero.innerHTML = `<div class="flex top">${emblem(t, o?.sub)}<div class="grow">
+        <h2 class="tier-name">${o ? label(t, o.sub) : 'Chưa có hạng'}</h2>
+        <p class="sub">${o ? `Hạng tổng, đã ghi ${Object.keys(st.byGroup).length}/${Object.keys(GROUPS).length} nhóm cơ`
+          : state.bw ? 'Ghi mức tạ đầu tiên bên dưới để nhận hạng' : 'Nhập cân nặng để bắt đầu xếp hạng'}</p>
+        ${o ? `${bar(o.progress, t < TOP)}<small>${t < TOP ? `Tiến độ lên ${TIERS[t + 1].name}: ${Math.round(o.progress * 100)}%` : 'Bạn đã ở hạng cao nhất'}</small>` : ''}
+      </div></div>
       ${state.bw ? '' : '<button id="start" class="primary" type="button">Nhập cân nặng</button>'}
       <button class="ladder" type="button" aria-label="Xem yêu cầu từng rank">${TIERS.map((_, i) => emblem(i).replace('class="emblem"', `class="emblem ${!o ? '' : i < t ? 'done' : i === t ? 'now' : ''}"`)).join('')}</button>
-      <small>Chạm vào dãy huy hiệu để xem yêu cầu từng rank</small>
-      ${o ? `${bar(o.progress, t < TOP)}<small>${t < TOP ? `Tiến độ lên ${TIERS[t + 1].name}: ${Math.round(o.progress * 100)}%` : 'Bạn đã ở hạng cao nhất'}</small>` : ''}`;
-    overallNow = o;
+      <small>Chạm vào dãy huy hiệu để xem yêu cầu từng rank</small>`;
+
+    $('groups').innerHTML = Object.entries(GROUPS).map(([g, name]) => {
+      const r = st.byGroup[g];
+      return `<label class="${r ? '' : 'empty'}" style="--c:${r ? TIERS[r.tier].color : '#3a414d'}">
+        <input type="radio" name="group" value="${g}"${g === group() ? ' checked' : ''} aria-label="${name}: ${r ? label(r.tier, r.sub) : 'chưa ghi'}" />
+        ${emblem(r ? r.tier : 0, r?.sub)}${name}</label>`;
+    }).join('');
+
+    $('ex').innerHTML = inGroup(group()).map(id =>
+      `<label><input type="radio" name="ex" value="${id}"${id === cur ? ' checked' : ''} />${short(id)}</label>`).join('');
+
+    $('listTitle').textContent = `Bài tập nhóm ${GROUPS[group()]}`;
+    $('list').innerHTML = inGroup(group()).map(id => {
+      const ex = EXERCISES[id], r = st.byEx[id];
+      const more = `<button class="more" type="button" data-detail="${id}" aria-label="Lịch sử và yêu cầu rank của ${ex.name}">›</button>`;
+      if (!r) return `<li class="empty" data-id="${id}">${emblem(0)}
+        <div class="grow"><b>${ex.name}</b><small>Chưa ghi. Chạm để ghi.</small></div>${more}</li>`;
+      return `<li data-id="${id}" style="--c:${TIERS[r.tier].color}">${emblem(r.tier, r.sub)}
+        <div class="grow"><div class="head"><b>${ex.name}</b><span class="tier">${label(r.tier, r.sub)}</span></div>
+        <small>${load(id, r.entry.kg)} × ${r.entry.reps} rep, 1RM ước tính ${fmt(r.oneRm)} kg</small>
+        ${bar(r.progress, r.tier < TOP)}<small>${next(r, r.entry.reps)}</small></div>${more}</li>`;
+    }).join('');
+
+    // Dựng lại nút chọn thì mất focus bàn phím; trả focus về nút đang chọn.
+    if (focus === 'group' || focus === 'ex') document.querySelector(`input[name="${focus}"]:checked`)?.focus({ preventScroll: true });
   }
 
   function preview() {
-    const id = exId(), kg = parseFloat($('kg').value), reps = Number($('reps').value);
-    const bw = EXERCISES[id].bw;
-    $('kgLabel').textContent = bw ? 'Tạ đeo thêm (kg)' : 'Tạ (kg)';
-    const ok = state.bw > 0 && Number.isFinite(kg) && Number.isInteger(reps) && reps >= 1 && reps <= 30 && (bw ? state.bw + kg > 0 : kg > 0);
+    const id = cur, ex = EXERCISES[id], kg = parseFloat($('kg').value), reps = Number($('reps').value);
+    $('kgLabel').textContent = ex.bw ? 'Tạ đeo thêm (kg)' : ex.each ? 'Tạ mỗi tay (kg)' : 'Tạ (kg)';
+    const ok = state.bw > 0 && Number.isFinite(kg) && Number.isInteger(reps) && reps >= 1 && reps <= 30 && (ex.bw ? state.bw + kg > 0 : kg > 0);
     $('save').disabled = !ok;
     if (!ok) {
       $('preview').style.removeProperty('--c');
-      $('preview').innerHTML = `<small>${state.bw ? (bw ? 'Không đeo tạ thì nhập 0, dùng máy hỗ trợ thì nhập số âm. Số rep từ 1 đến 30.' : 'Nhập số kg và số rep (1–30) để xem hạng.') : 'Bấm “Nhập cân nặng” ở góc trên trước.'}</small>`;
+      $('preview').innerHTML = `<small>${!state.bw ? 'Bấm “Nhập cân nặng” ở góc trên trước.'
+        : ex.bw ? 'Không đeo tạ thì nhập 0, dùng máy hỗ trợ thì nhập số âm. Số rep từ 1 đến 30.'
+        : `Nhập số kg${ex.each ? ' của một tay' : ''} và số rep (1–30) để xem hạng.`}</small>`;
       return null;
     }
     const r = rate(id, state.sex, state.bw, kg, reps);
     $('preview').style.setProperty('--c', TIERS[r.tier].color);
     $('preview').innerHTML = `${emblem(r.tier, r.sub)}<div class="grow"><span class="tier" style="font-size:22px">${label(r.tier, r.sub)}</span>
       <small>1RM ước tính ${fmt(r.oneRm)} kg, gấp ${r.ratio.toLocaleString('vi-VN', { maximumFractionDigits: 2 })} lần cân nặng${reps > 10 ? '. Trên 10 rep thì ước tính kém chính xác.' : ''}</small>
-      ${bar(r.progress, r.tier < TOP)}<small>${next(r, reps)}</small></div>`;
+      ${bar(r.progress, r.tier < TOP)}<small>${next(r, reps)}</small>
+      ${ex.machine ? '<small>Máy mỗi phòng tập nặng nhẹ khác nhau, rank bài này chỉ để tham khảo.</small>' : ''}</div>`;
     return { id, kg, reps, r };
   }
 
@@ -328,82 +391,148 @@
     $('levelup').showModal();
   }
 
-  $('ex').innerHTML = Object.entries(EXERCISES).map(([id, e], i) =>
-    `<label><input type="radio" name="ex" value="${id}"${i ? '' : ' checked'} />${e.name.split(' (')[0]}</label>`).join('');
-  const changed = () => {
-    $('msg').textContent = '';
-    armed = '';
-    $('save').textContent = 'Lưu kỷ lục';
-    preview();
-  };
+  // ---- Ghi mức tạ ----
+  const changed = () => { $('msg').textContent = ''; preview(); };
   // Đổi bài: điền sẵn kỷ lục của bài đó để bấm +/− từ đấy, chưa có thì để trống.
-  const prefill = () => { const b = state.best[exId()]; $('kg').value = b ? b.kg : ''; $('reps').value = b ? b.reps : ''; };
-  const pick = id => { document.querySelector(`#ex input[value="${id}"]`).checked = true; prefill(); changed(); };
-  $('ex').addEventListener('input', () => { prefill(); changed(); });
+  const prefill = () => { const e = st.byEx[cur]?.entry; $('kg').value = e ? e.kg : ''; $('reps').value = e ? e.reps : ''; };
+  const select = id => { cur = id; render(); prefill(); changed(); };
+  // Chọn nhóm cơ: mở bài tốt nhất của nhóm, nhóm chưa ghi thì mở bài đầu tiên.
+  $('groups').addEventListener('input', e => select(st.byGroup[e.target.value]?.entry.id ?? inGroup(e.target.value)[0]));
+  $('ex').addEventListener('input', e => select(e.target.value));
   $('kg').addEventListener('input', changed);
   $('reps').addEventListener('input', changed);
   $('fields').onclick = e => {
-    const b = e.target.closest('[data-step]');
+    const b = e.target.closest('[data-dir]');
     if (!b) return;
-    const el = $(b.dataset.for), v = (parseFloat(el.value) || 0) + Number(b.dataset.step);
-    el.value = b.dataset.for === 'reps' ? Math.min(30, Math.max(1, v)) : EXERCISES[exId()].bw ? v : Math.max(0, v);
+    const reps = b.dataset.for === 'reps', ex = EXERCISES[cur], el = $(b.dataset.for);
+    const v = (parseFloat(el.value) || 0) + Number(b.dataset.dir) * (reps ? 1 : ex.each ? 1 : 2.5);
+    el.value = reps ? Math.min(30, Math.max(1, v)) : ex.bw ? v : Math.max(0, v);
     changed();
   };
-
-  function openTiers() {
-    const id = exId(), ex = EXERCISES[id], th = thresholds(id, state.sex), bw = state.bw, b = state.best[id];
-    const mine = b && bw ? rate(id, state.sex, bw, b.kg, b.reps).tier : -1;
-    const half = n => Math.ceil(n * 2 - 1e-9) / 2;
-    $('tiersSub').textContent = bw
-      ? `Mức cần đạt với ${ex.name}, tính cho 1 rep ở cân nặng ${fmt(bw)} kg. Muốn xem bài khác thì chọn bài ở phần Ghi mức tạ.`
-      : `Mức cần đạt với ${ex.name}, tính theo số lần cân nặng. Nhập cân nặng để xem ra kg.`;
-    $('tiersList').innerHTML = TIERS.map((t, i) => {
-      const add = half(th[i] * bw - bw);
-      const need = !i ? 'Điểm xuất phát' : !bw ? `Từ ${th[i].toLocaleString('vi-VN', { maximumFractionDigits: 2 })} lần cân nặng`
-        : !ex.bw ? `Từ ${fmt(half(th[i] * bw))} kg`
-        : add > 0 ? `Đeo thêm từ ${fmt(add)} kg` : add < 0 ? `Máy hỗ trợ tối đa ${fmt(-add)} kg` : 'Không đeo tạ';
-      return `<li class="${i === mine ? 'mine' : ''}" style="--c:${t.color}">${emblem(i)}
-        <div class="grow"><span class="tier">${t.name}</span><small style="margin:2px 0 0">${need}${i === mine ? '. Kỷ lục của bạn đang ở đây' : ''}</small></div></li>`;
-    }).reverse().join('');
-    $('tiers').showModal();
-    $('tiers').scrollTop = 0;
-  }
 
   $('save').onclick = () => {
     const p = preview();
     if (!p) return;
-    const b = state.best[p.id];
-    const old = b && rate(p.id, state.sex, state.bw, b.kg, b.reps);
-    if (old && old.oneRm >= p.r.oneRm && !second('save', $('save'), `Thấp hơn kỷ lục ${load(p.id, b.kg)} × ${b.reps}. Bấm lần nữa để ghi đè`)) return;
-    $('save').textContent = 'Lưu kỷ lục';
-    const before = overallNow;
-    state.best[p.id] = { kg: p.kg, reps: p.reps };
+    const before = st, old = before.byEx[p.id];
+    state.log.push({ id: p.id, kg: p.kg, reps: p.reps, t: Date.now() });
     persist();
     render();
-    const o = overallNow, name = EXERCISES[p.id].name;
-    let msg = !old ? 'Đã lưu kỷ lục' : p.r.oneRm > old.oneRm ? 'Đã lưu kỷ lục mới 💪' : 'Đã lưu kỷ lục';
+    const o = st.overall, ob = before.overall, now = st.byEx[p.id], name = short(p.id);
+    let msg = !old ? 'Đã lưu. Đây là kỷ lục đầu tiên của bài này.' : p.r.oneRm > old.oneRm ? 'Đã lưu kỷ lục mới 💪'
+      : `Đã ghi vào lịch sử. Kỷ lục vẫn là ${load(p.id, old.entry.kg)} × ${old.entry.reps} rep.`;
     // Lên rank lớn: màn hình chúc mừng. Lên bậc phụ: chỉ một dòng thông báo.
-    if (!before || o.tier > before.tier) levelUp(o, before ? 'Bạn đã lên hạng tổng' : 'Hạng tổng đầu tiên của bạn');
-    else if (old && p.r.tier > old.tier) levelUp(p.r, `${name} lên hạng`);
-    else if (level(o) > level(before)) msg = `Hạng tổng lên ${label(o.tier, o.sub)} 🎉`;
-    else if (old && level(p.r) > level(old)) msg = `${name} lên ${label(p.r.tier, p.r.sub)} 🎉`;
+    if (!ob || o.tier > ob.tier) levelUp(o, ob ? 'Bạn đã lên hạng tổng' : 'Hạng tổng đầu tiên của bạn');
+    else if (old && now.tier > old.tier) levelUp(now, `${name} lên hạng`);
+    else if (level(o) > level(ob)) msg = `Hạng tổng lên ${label(o.tier, o.sub)} 🎉`;
+    else if (old && level(now) > level(old)) msg = `${name} lên ${label(now.tier, now.sub)} 🎉`;
     preview();
     $('msg').textContent = msg;
   };
 
   $('list').onclick = e => {
-    const del = e.target.closest('[data-del]');
-    if (del) {
-      if (second('del:' + del.dataset.del, del, 'Xóa?')) { delete state.best[del.dataset.del]; persist(); render(); }
-      return;
-    }
+    const more = e.target.closest('[data-detail]');
+    if (more) return openDetail(more.dataset.detail);
     const li = e.target.closest('[data-id]');
     if (!li) return;
-    pick(li.dataset.id);
+    select(li.dataset.id);
     $('ex').scrollIntoView({ behavior: 'smooth', block: 'center' });
     $('kg').focus({ preventScroll: true });
   };
 
+  // ---- Bảng yêu cầu từng rank của một bài (dùng ở cả bảng rank và trang chi tiết bài) ----
+  function tierRows(id) {
+    const ex = EXERCISES[id], th = thresholds(id, state.sex), bw = state.bw, mine = st.byEx[id]?.tier ?? -1;
+    const half = n => Math.ceil(n * 2 - 1e-9) / 2;
+    return TIERS.map((t, i) => {
+      const add = half(th[i] * bw - bw);
+      const need = !i ? 'Điểm xuất phát' : !bw ? `Từ ${th[i].toLocaleString('vi-VN', { maximumFractionDigits: 2 })} lần cân nặng`
+        : !ex.bw ? `Từ ${fmt(half(th[i] * bw))} kg${ex.each ? ' mỗi tay' : ''}`
+        : add > 0 ? `Đeo thêm từ ${fmt(add)} kg` : add < 0 ? `Máy hỗ trợ tối đa ${fmt(-add)} kg` : 'Không đeo tạ';
+      return `<li class="${i === mine ? 'mine' : ''}" style="--c:${t.color}">${emblem(i)}
+        <div class="grow"><span class="tier">${t.name}</span><small style="margin:2px 0 0">${need}${i === mine ? '. Kỷ lục của bạn đang ở đây' : ''}</small></div></li>`;
+    }).reverse().join('');
+  }
+  const tiersNote = id => (state.bw ? `tính cho 1 rep ở cân nặng ${fmt(state.bw)} kg` : 'tính theo số lần cân nặng, nhập cân nặng để xem ra kg');
+
+  function openTiers() {
+    $('tiersSub').textContent = `Mức cần đạt với ${EXERCISES[cur].name}, ${tiersNote(cur)}. Muốn xem bài khác thì chọn bài ở phần Ghi mức tạ.`;
+    $('tiersList').innerHTML = tierRows(cur);
+    $('tiers').showModal();
+    $('tiers').scrollTop = 0;
+  }
+
+  // ---- Chi tiết bài: biểu đồ 1RM ước tính theo thời gian + các lần ghi + yêu cầu từng rank ----
+  // Một chuỗi số liệu nên không cần chú giải; đường ngang là mức của rank kế tiếp. Chạm một điểm để đọc số; bảng bên dưới có đủ mọi lần ghi.
+  let points = [];
+  const readout = p => `${day(p.e.t, true)}: ${load(p.id, p.e.kg)} × ${p.e.reps} rep, 1RM ước tính ${fmt(p.v)} kg`;
+  function chart(id, entries, rec) {
+    points = entries.map(e => ({ id, e, v: rate(id, state.sex, state.bw, e.kg, e.reps).oneRm }));
+    if (points.length < 2) return '<p class="sub">Ghi thêm ít nhất một lần nữa để thấy biểu đồ tiến bộ.</p>';
+    const W = 320, H = 156, L = 34, R = 12, T = 16, B = 24;
+    const goal = rec.tier < TOP ? thresholds(id, state.sex)[rec.tier + 1] * state.bw : null;
+    const vs = points.map(p => p.v).concat(goal ?? []);
+    const lo = Math.floor(Math.min(...vs) / 5) * 5, hi = Math.max(Math.ceil(Math.max(...vs) / 5) * 5, lo + 5);
+    const t0 = points[0].e.t, t1 = points.at(-1).e.t;
+    const y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+    points.forEach((p, i) => { p.x = L + (t1 > t0 ? (p.e.t - t0) / (t1 - t0) : i / (points.length - 1)) * (W - L - R); p.y = y(p.v); });
+    const last = points.at(-1);
+    const tick = day(t0, true) === day(t1, true) ? t => new Date(t).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : t => day(t);
+    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Biểu đồ 1RM ước tính của ${EXERCISES[id].name} qua ${points.length} lần ghi">
+      ${[lo, (lo + hi) / 2, hi].map(v => `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/>
+        <text x="${L - 6}" y="${y(v) + 3.5}" text-anchor="end">${fmt(v)}</text>`).join('')}
+      ${goal ? `<line class="goal" x1="${L}" x2="${W - R}" y1="${y(goal)}" y2="${y(goal)}"/>
+        <text class="lbl" x="${L + 4}" y="${y(goal) - 4}">${TIERS[rec.tier + 1].name}: ${fmt(goal)} kg</text>` : ''}
+      <text x="${L}" y="${H - 6}">${tick(t0)}</text><text x="${W - R}" y="${H - 6}" text-anchor="end">${tick(t1)}</text>
+      <polyline fill="none" stroke="var(--c)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="${points.map(p => `${p.x},${p.y}`).join(' ')}"/>
+      ${points.map(p => `<circle cx="${p.x}" cy="${p.y}" r="4" fill="var(--c)" stroke="var(--panel)" stroke-width="2"/>`).join('')}
+      <circle id="sel" cx="${last.x}" cy="${last.y}" r="7" fill="none" stroke="var(--text)" stroke-width="1.5"/>
+      ${points.map((p, i) => `<circle class="hit" data-i="${i}" cx="${p.x}" cy="${p.y}" r="16"/>`).join('')}
+    </svg><p class="sub" id="read" aria-live="polite">${readout(last)}</p>`;
+  }
+  const point = e => {
+    const p = points[e.target.closest?.('.hit')?.dataset.i];
+    if (!p) return;
+    $('sel').setAttribute('cx', p.x);
+    $('sel').setAttribute('cy', p.y);
+    $('read').textContent = readout(p);
+  };
+
+  let detailId = null;
+  function renderDetail() {
+    const id = detailId, ex = EXERCISES[id], r = st.byEx[id];
+    const entries = state.log.filter(e => e.id === id).sort((a, b) => a.t - b.t);
+    $('detail').style.setProperty('--c', r ? TIERS[r.tier].color : '#3a414d');
+    $('dBody').innerHTML = `<div class="flex top${r ? '' : ' empty'}">${emblem(r ? r.tier : 0, r?.sub)}<div class="grow">
+        <h2>${ex.name}</h2>
+        <p class="sub">${r ? `${label(r.tier, r.sub)}. Kỷ lục ${load(id, r.entry.kg)} × ${r.entry.reps} rep.` : 'Chưa ghi lần nào.'}</p></div></div>
+      ${ex.machine ? '<p class="sub">Máy mỗi phòng tập nặng nhẹ khác nhau, rank bài này chỉ để tham khảo.</p>' : ''}
+      ${r ? `<h3>1RM ước tính theo thời gian</h3>${ex.bw ? '<small>Tính cả cân nặng cơ thể.</small>' : ''}${chart(id, entries, r)}
+        <h3>Các lần ghi</h3><ul>${entries.map(e => ({ e, v: rate(id, state.sex, state.bw, e.kg, e.reps).oneRm })).reverse().map(({ e, v }) => `<li>
+          <div class="grow"><b>${load(id, e.kg)} × ${e.reps} rep</b><small>${day(e.t, true)}, 1RM ước tính ${fmt(v)} kg${e === r.entry ? ', kỷ lục' : ''}</small></div>
+          <button class="del" type="button" data-rm="${state.log.indexOf(e)}" aria-label="Xóa lần ghi ${load(id, e.kg)} × ${e.reps} rep ngày ${day(e.t, true)}">Xóa</button></li>`).join('')}</ul>` : ''}
+      <h3>Yêu cầu từng rank</h3><small>${tiersNote(id)[0].toUpperCase() + tiersNote(id).slice(1)}.</small>
+      <ul class="tiers">${tierRows(id)}</ul>`;
+  }
+  function openDetail(id) {
+    detailId = id;
+    renderDetail();
+    $('detail').showModal();
+    $('detail').scrollTop = 0;
+  }
+  $('dBody').onpointerover = point;
+  $('dBody').onclick = e => {
+    point(e);
+    const rm = e.target.closest('[data-rm]');
+    if (!rm || !second('rm:' + rm.dataset.rm, rm, 'Xóa?')) return;
+    state.log.splice(Number(rm.dataset.rm), 1);
+    persist();
+    render();
+    renderDetail();
+    prefill();
+    changed();
+  };
+
+  // ---- Hồ sơ ----
   const dlg = $('profile');
   const openProfile = () => {
     dlg.querySelector(`input[value="${state.sex}"]`).checked = true;
@@ -422,6 +551,7 @@
   });
 
   render();
+  prefill();
   preview();
 </script>
 </body>
