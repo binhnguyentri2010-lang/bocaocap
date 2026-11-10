@@ -14,15 +14,18 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&display=swap" />
   <style>
-    /* Một trang: rank tổng nằm ngang → 5 nhóm cơ (vừa là rank nhóm, vừa là bộ lọc) → ghi mức tạ → bài của nhóm đang chọn. */
-    :root { --bg:#101318; --panel:#181c23; --line:#272d37; --text:#eef0f3; --muted:#8c95a3; --c:#3a414d;
-      --display:'Big Shoulders Display', system-ui, sans-serif; color-scheme:dark; }
+    /* Một trang: huy hiệu hạng tổng đứng dưới ánh đèn → 5 nhóm cơ (vừa là rank nhóm, vừa là bộ lọc) → bài của nhóm đang chọn. Nút ghi mức tạ dính đáy màn hình. */
+    @property --c { syntax:'<color>'; inherits:true; initial-value:#3a414d; }
+    :root { --bg:#0b0c0f; --panel:#15181e; --line:#272c36; --text:#f1efe9; --muted:#8c929e; --c:#3a414d;
+      --display:'Big Shoulders Display', system-ui, sans-serif; color-scheme:dark; transition:--c .6s; }
     :root { padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); background:var(--bg); }
     * { box-sizing:border-box; }
-    body { margin:0; background:var(--bg); color:var(--text); font:16px/1.4 system-ui,-apple-system,sans-serif; -webkit-tap-highlight-color:transparent; }
+    /* --c ở gốc trang là màu hạng tổng: nhuộm quầng sáng đầu trang */
+    body { margin:0; color:var(--text); font:16px/1.4 system-ui,-apple-system,sans-serif; -webkit-tap-highlight-color:transparent;
+      background:radial-gradient(130% 470px at 50% -30px,color-mix(in srgb,var(--c) 34%,transparent),transparent 72%) no-repeat var(--bg); }
     main { max-width:480px; margin:auto; padding-block:14px 24px;
       padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px)); }
-    header { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+    header { position:relative; z-index:1; display:flex; align-items:center; gap:10px; }
     h1 { margin:0; flex:1; font:800 32px/1 var(--display); letter-spacing:.02em; }
     h3 { margin:0 0 10px; font:700 22px/1 var(--display); letter-spacing:.02em; }
     small { display:block; color:var(--muted); font-size:13px; }
@@ -31,11 +34,14 @@
     .panel { background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:16px; margin-bottom:14px; }
     .flex { display:flex; gap:14px; align-items:center; }
     .grow { flex:1; min-width:0; }
-    #me { background:var(--panel); border:1px solid var(--line); border-radius:999px; padding:7px 14px; font-size:14px; }
+    #me { background:#ffffff0d; border:1px solid #ffffff24; border-radius:999px; padding:7px 14px; font-size:14px; }
 
     .emblem { display:block; flex:none; overflow:visible; }
-    .empty .emblem, .hero.none .top .emblem { filter:grayscale(1); opacity:.3; }
-    .tier-name { margin:0; font:800 40px/1 var(--display); letter-spacing:.03em; text-transform:uppercase; color:color-mix(in srgb,var(--c),#fff 35%); }
+    .glint { display:none; fill:#fff; opacity:.4; }
+    /* Tên rank: chữ ánh kim theo màu rank. Đệm trên dưới để dấu tiếng Việt không bị cắt khỏi nền chữ. */
+    .tier-name { margin:0; padding:.14em 0 .06em; font:800 40px/1 var(--display); letter-spacing:.03em; text-transform:uppercase; text-wrap:balance; color:transparent;
+      background:linear-gradient(180deg,color-mix(in srgb,var(--c),#fff 80%) 22%,color-mix(in srgb,var(--c),#fff 20%) 66%,color-mix(in srgb,var(--c),#fff 48%));
+      -webkit-background-clip:text; background-clip:text; }
     .tier { font:800 16px/1 var(--display); letter-spacing:.04em; text-transform:uppercase; color:color-mix(in srgb,var(--c),#fff 25%); white-space:nowrap; }
     .sub { margin:6px 0 0; color:var(--muted); font-size:14px; }
 
@@ -44,49 +50,56 @@
       background:linear-gradient(90deg,color-mix(in srgb,var(--c),#000 25%),color-mix(in srgb,var(--c),#fff 30%)); }
     /* seg: thanh chia 3 khúc ứng với 3 bậc phụ */
     .bar.seg::after { content:""; position:absolute; inset:0;
-      background:linear-gradient(90deg,transparent calc(100%/3 - 1.5px),var(--panel) 0 calc(100%/3 + 1.5px),transparent 0 calc(200%/3 - 1.5px),var(--panel) 0 calc(200%/3 + 1.5px),transparent 0); }
+      background:linear-gradient(90deg,transparent calc(100%/3 - 1.5px),var(--bg) 0 calc(100%/3 + 1.5px),transparent 0 calc(200%/3 - 1.5px),var(--bg) 0 calc(200%/3 + 1.5px),transparent 0); }
 
-    /* Rank tổng */
-    .hero { border-color:color-mix(in srgb,var(--c) 40%,var(--line));
-      background:radial-gradient(70% 120% at 12% 30%,color-mix(in srgb,var(--c) 28%,transparent),transparent 70%),var(--panel); }
-    .hero .top .emblem { width:92px; filter:drop-shadow(0 6px 16px color-mix(in srgb,var(--c) 55%,transparent)); }
-    .hero .primary { margin-top:14px; }
-    .ladder { display:flex; justify-content:space-between; align-items:center; width:100%; margin-top:14px; padding:8px;
-      background:#ffffff08; border:1px solid var(--line); border-radius:14px; }
-    .ladder .emblem { width:28px; opacity:.22; filter:grayscale(1); }
-    .ladder .done { opacity:.65; filter:none; }
-    .ladder .now { width:38px; opacity:1; filter:drop-shadow(0 0 8px color-mix(in srgb,var(--c) 70%,transparent)); }
-    .ladder + small { margin-top:6px; text-align:center; }
+    /* Hạng tổng: huy hiệu đứng giữa, tia sáng xoay chậm phía sau */
+    .hero { position:relative; text-align:center; margin-bottom:16px; }
+    .trophy { position:relative; display:grid; place-items:center; height:min(188px,30dvh); }
+    /* Khung .rays đứng yên và cắt phần tràn, chỉ lớp ::before bên trong xoay: hình vuông đang xoay không làm trang tràn ngang. */
+    .rays { --r:170px; position:absolute; inset:-90px 0; overflow:hidden; pointer-events:none; opacity:.6;
+      -webkit-mask:radial-gradient(circle var(--r),#000 18%,transparent); mask:radial-gradient(circle var(--r),#000 18%,transparent); }
+    .rays::before { content:""; position:absolute; left:50%; top:50%; width:calc(var(--r) * 2); aspect-ratio:1; translate:-50% -50%; animation:spin 40s linear infinite;
+      background:repeating-conic-gradient(color-mix(in srgb,var(--c) 38%,transparent) 0 8deg,transparent 8deg 30deg); }
+    .trophy .emblem { position:relative; width:min(172px,27dvh); filter:drop-shadow(0 14px 22px color-mix(in srgb,var(--c) 55%,transparent)); animation:float 5s ease-in-out infinite; }
+    .trophy .glint, .landed .glint { display:block; animation:glint 4.6s ease-in-out infinite; }
+    .hero.none .rays { display:none; }
+    .hero .tier-name { font-size:56px; }
+    .hero .bar { max-width:270px; margin:10px auto 5px; }
+    .ladder { display:flex; justify-content:space-between; align-items:center; width:100%; margin-top:8px; padding:2px; background:none; color:var(--muted); font-size:24px; line-height:1; }
+    .ladder .emblem { width:30px; filter:brightness(.32) saturate(.3); }
+    .ladder .done { filter:none; opacity:.75; }
+    .ladder .now { width:40px; filter:drop-shadow(0 0 8px color-mix(in srgb,var(--c) 70%,transparent)); }
+    @keyframes spin { to { transform:rotate(1turn); } }
+    @keyframes float { 50% { transform:translateY(-5px); } }
+    @keyframes glint { 0%,62% { transform:translateX(0); } 100% { transform:translateX(190px); } }
 
     /* 5 nhóm cơ */
     .groups { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-bottom:14px; }
     .groups label { position:relative; display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px 2px 7px;
-      background:var(--panel); border:1px solid var(--line); border-radius:14px; color:var(--muted); font-size:13px; }
-    .groups .emblem { width:42px; }
-    .groups label:has(input:checked) { color:var(--text); font-weight:600; border-color:color-mix(in srgb,var(--c),#fff 20%);
-      background:color-mix(in srgb,var(--c) 16%,var(--panel)); }
-    .groups label.empty:has(input:checked) { border-color:var(--muted); }
+      background:#ffffff08; border:1px solid var(--line); border-radius:14px; color:var(--muted); font-size:13px; }
+    .groups .emblem { width:44px; }
+    .groups label:has(input:checked) { color:var(--text); font-weight:600; border-color:color-mix(in srgb,var(--c),#fff 25%);
+      background:linear-gradient(180deg,color-mix(in srgb,var(--c) 30%,var(--panel)),var(--panel)); box-shadow:0 6px 18px color-mix(in srgb,var(--c) 24%,transparent); }
 
-    /* Ghi mức tạ */
-    .groups input, .chips input, fieldset input { position:absolute; opacity:0; pointer-events:none; }
+    .groups input, fieldset input { position:absolute; opacity:0; pointer-events:none; }
     label:has(input[type=radio]:focus-visible) { outline:2px solid var(--text); outline-offset:2px; }
-    .chips { display:flex; gap:8px; overflow-x:auto; margin:0 -16px 14px; padding:2px 16px; scrollbar-width:none; }
-    .chips::-webkit-scrollbar { display:none; }
-    .chips label { position:relative; flex:none; padding:9px 14px; border:1px solid var(--line); border-radius:999px; color:var(--text); font-size:15px; }
-    .chips label:has(input:checked) { background:var(--text); border-color:var(--text); color:var(--bg); font-weight:600; }
     label { display:block; font-size:13px; color:var(--muted); }
     input[type=number] { width:100%; margin-top:4px; padding:12px; font:inherit; font-size:16px; color:var(--text);
       background:var(--bg); border:1px solid var(--line); border-radius:12px; }
-    .primary { width:100%; padding:14px; border-radius:14px; background:var(--text); color:var(--bg); font-weight:700; }
+    .primary { width:100%; padding:15px 14px 14px; border-radius:14px; background:var(--text); color:var(--bg);
+      font:800 21px/1 var(--display); letter-spacing:.06em; text-transform:uppercase; }
     .primary:disabled { opacity:.3; }
     .ghost { width:100%; margin-top:12px; padding:12px; border-radius:14px; background:none; border:1px solid var(--line); }
-    #curInfo { margin:0 0 12px; }
+    /* Nút ghi mức tạ dính đáy màn hình, để phần đầu trang dành cho huy hiệu. Dải nền mờ dần phía sau để nội dung trôi qua không đè chữ lên nút. */
+    .cta { position:sticky; bottom:0; z-index:2; margin-inline:-16px; padding:28px 16px calc(12px + env(safe-area-inset-bottom,0px));
+      background:linear-gradient(transparent,var(--bg) 60%); pointer-events:none; }
+    .cta .primary { pointer-events:auto; box-shadow:0 10px 26px #000c; }
 
     /* Danh sách dạng dòng: bài tập, lịch sử, bảng rank */
     ul { list-style:none; margin:0; padding:0; }
     li { display:flex; gap:12px; align-items:center; padding:12px 0; }
     li + li { border-top:1px solid var(--line); }
-    li > .emblem { width:52px; }
+    li > .emblem { width:56px; }
     li .head { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
     #list li { cursor:pointer; }
     li.empty b { color:var(--muted); font-weight:500; }
@@ -143,40 +156,56 @@
     .hint { min-height:1.4em; text-align:center; }
     .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
 
-    /* Bước 3: huy hiệu leo từ Gỗ lên rank đạt được. Đây là khoảnh khắc chuyển động duy nhất của app. */
-    .sheet:has(#result:not([hidden])) { background:radial-gradient(110% 55% at 50% 26%,color-mix(in srgb,var(--c) 34%,transparent),transparent 72%),var(--panel); }
-    #result { text-align:center; }
-    .dots { position:relative; z-index:1; display:flex; justify-content:center; gap:8px; margin:2px 0; }
-    .dots i { width:9px; height:9px; border-radius:50%; background:var(--line); }
-    .dots i.on { background:var(--dc); box-shadow:0 0 8px var(--dc); }
-    .stage { position:relative; display:grid; place-items:center; height:176px; }
-    /* Tia sáng và vòng sáng nằm ngoài luồng bố cục, canh giữa bằng translate để không đẩy huy hiệu và không chặn nút bên dưới */
-    .stage::before, .stage::after { position:absolute; left:50%; top:50%; translate:-50% -50%; pointer-events:none; }
-    .stage .emblem { position:relative; width:150px; filter:drop-shadow(0 12px 28px color-mix(in srgb,var(--c) 60%,transparent)); }
-    .stage::before { content:""; width:300px; aspect-ratio:1; border-radius:50%; opacity:0; transition:opacity .6s; animation:spin 26s linear infinite;
-      background:repeating-conic-gradient(color-mix(in srgb,var(--c) 38%,transparent) 0 9deg,transparent 9deg 30deg);
-      -webkit-mask:radial-gradient(closest-side,#000 25%,transparent); mask:radial-gradient(closest-side,#000 25%,transparent); }
-    .stage::after { content:""; width:140px; aspect-ratio:1; border-radius:50%; border:3px solid color-mix(in srgb,var(--c),#fff 35%); opacity:0; }
-    #result .tier-name { position:relative; font-size:50px; min-height:1em; }
-    #result .bar { max-width:300px; margin-inline:auto; }
-    #result .bar i { transition:width .9s .15s cubic-bezier(.2,.8,.2,1); }
-    .after { position:relative; opacity:0; }
-    .news { margin:10px 0 0; text-align:left; }
-    .news li { padding:6px 0; font-size:15px; }
-    .actions { display:flex; gap:10px; margin-top:14px; }
+    /* Bước 3 chiếm cả màn hình: huy hiệu lật qua từng rank từ Gỗ, nín một nhịp, rồi huy hiệu thật rơi xuống kèm lóe sáng, rung và tia lửa.
+       Đây là khoảnh khắc chuyển động chính của app. Mọi phần tử "hiện ra" đều có trạng thái nghỉ là trạng thái cuối, nên tắt chuyển động vẫn đủ nội dung. */
+    .sheet.show { height:100dvh; max-height:none; border:0; border-radius:0; overflow:hidden auto; transition:--c .25s; animation:take .4s cubic-bezier(.2,.9,.3,1);
+      padding-top:calc(12px + env(safe-area-inset-top,0px));
+      background:radial-gradient(125% 58% at 50% 31%,color-mix(in srgb,var(--c) 42%,transparent),transparent 70%) #06070a; }
+    @keyframes take { from { clip-path:inset(45% 0 0 0 round 24px 24px 0 0); } to { clip-path:inset(0); } }
+    #fx { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+    #result:not([hidden]) { position:relative; display:flex; flex-direction:column; height:100%; text-align:center; }
+    .dots { display:flex; justify-content:center; gap:8px; margin:6px 0 0; }
+    .dots i { width:9px; height:9px; border-radius:50%; background:#ffffff26; transition:scale .2s; }
+    .dots i.on { background:var(--dc); box-shadow:0 0 10px var(--dc); }
+    .dots i.at { scale:1.55; }
+    .stage { position:relative; flex:1 0 auto; display:grid; place-items:center; }
+    .stage .rays { --r:280px; inset:-240px -18px; opacity:0; scale:.35; transition:opacity .5s .26s, scale .8s .26s cubic-bezier(.2,.9,.3,1); }
+    .ring { position:absolute; left:50%; top:50%; width:150px; aspect-ratio:1; translate:-50% -50%; border-radius:50%; pointer-events:none; opacity:0;
+      border:3px solid color-mix(in srgb,var(--c),#fff 45%); }
+    .medal { position:relative; filter:drop-shadow(0 18px 30px color-mix(in srgb,var(--c) 60%,transparent)); }
+    /* Huy hiệu to hết mức mà nút Xong vẫn nằm trong màn hình: 445px là phần chữ, số và nút bên dưới. */
+    .medal .emblem { width:clamp(120px,(100dvh - 445px) * .9,min(230px,58vw)); }
+    .stamp { align-self:center; margin:0 0 2px; padding:4px 12px 2px; border-radius:6px; rotate:-4deg; opacity:0;
+      font:800 18px/1.2 var(--display); letter-spacing:.1em; text-transform:uppercase; color:#0b0c0f; background:color-mix(in srgb,var(--c),#fff 40%); }
+    #result .tier-name { font-size:min(62px,16.5vw,9.3dvh); min-height:1.2em; white-space:nowrap; }
+    #result .bar { width:100%; max-width:300px; margin-inline:auto; }
+    #result .bar i { transition:width .9s .5s cubic-bezier(.2,.8,.2,1); }
+    .stats { display:flex; justify-content:center; gap:22px; margin:10px 0 0; }
+    .stats b { display:block; font:800 min(30px,4.6dvh)/1.1 var(--display); letter-spacing:.02em; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .stats small { font-size:12px; }
+    /* Màn hình thấp: chỉ danh sách tin co lại và tự cuộn, nút Xong luôn nằm trong màn hình. */
+    .after { opacity:0; display:flex; flex-direction:column; min-height:0; }
+    .after > * { flex:none; }
+    .after .news { flex:0 1 auto; min-height:0; overflow:auto; }
+    .news { margin:8px 0 0; text-align:left; }
+    .news li { padding:4px 0; font-size:14px; }
+    .news .emblem { width:28px; }
+    .news .mark { flex:none; width:28px; text-align:center; font-size:18px; }
+    .actions { display:flex; gap:10px; margin-top:10px; }
     .actions .ghost { flex:1; margin:0; }
     .actions .primary { flex:2; margin:0; }
-    .news .emblem { width:34px; }
-    .news .mark { flex:none; width:34px; text-align:center; font-size:20px; }
-    .landed .stage::before { opacity:.75; }
-    .landed .stage::after { animation:ring .75s ease-out; }
-    .landed .stage .emblem { animation:land .65s cubic-bezier(.2,1.7,.4,1); }
-    .landed .tier-name { animation:rise .45s both; }
-    .landed .after { opacity:1; transition:opacity .45s .3s; }
-    @keyframes spin { to { transform:rotate(1turn); } }
-    @keyframes ring { from { transform:scale(.6); opacity:.9; } to { transform:scale(2.2); opacity:0; } }
-    @keyframes land { from { transform:scale(.72); } }
-    @keyframes rise { from { transform:translateY(12px); opacity:0; } }
+    .landed .rays { opacity:.9; scale:1; }
+    .landed .ring { animation:ring .8s .26s ease-out; }
+    .landed .ring + .ring { animation-delay:.42s; border-width:1.5px; }
+    .landed .medal { animation:float 4.6s 1s ease-in-out infinite; }
+    .landed .stamp { opacity:1; animation:stamp .35s .6s cubic-bezier(.2,1.6,.4,1) backwards; }
+    .landed .tier-name { animation:track .55s .3s cubic-bezier(.2,.9,.3,1) backwards; }
+    .landed .after { opacity:1; transition:opacity .4s .5s; }
+    .landed .news li { animation:rise .4s calc(.75s + var(--i) * .1s) backwards; }
+    @keyframes ring { from { transform:scale(.6); opacity:.95; } to { transform:scale(3.4); opacity:0; } }
+    @keyframes stamp { from { scale:2.6; opacity:0; } }
+    @keyframes track { from { transform:scale(1.7); opacity:0; filter:blur(10px); } }
+    @keyframes rise { from { transform:translateY(14px); opacity:0; } }
     @media (prefers-reduced-motion:reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
 
     footer { margin-top:18px; text-align:center; }
@@ -189,21 +218,16 @@
     <button id="me" type="button" aria-label="Sửa giới tính và cân nặng"></button>
   </header>
 
-  <section id="overall" class="panel hero" aria-live="polite"></section>
+  <section id="overall" class="hero" aria-live="polite"></section>
 
   <div id="groups" class="groups" role="radiogroup" aria-label="Nhóm cơ"></div>
-
-  <section class="panel">
-    <h3>Ghi mức tạ</h3>
-    <div id="ex" class="chips" role="radiogroup" aria-label="Bài tập"></div>
-    <p id="curInfo" class="sub"></p>
-    <button id="open" class="primary" type="button">Ghi mức tạ</button>
-  </section>
 
   <section class="panel">
     <h3 id="listTitle"></h3>
     <ul id="list"></ul>
   </section>
+
+  <div class="cta"><button id="open" class="primary" type="button"></button></div>
 
   <footer><small>Ngưỡng xếp hạng và hệ số giữa các bài là ước tính tham khảo, không phải chuẩn chính thức. 1RM tính theo công thức Epley.</small></footer>
 </main>
@@ -238,6 +262,7 @@
 </dialog>
 
 <dialog id="log" class="sheet" aria-labelledby="logTitle">
+  <canvas id="fx" aria-hidden="true"></canvas>
   <section data-step="1">
     <div class="stephead"><h2 id="logTitle"></h2><small>Bước 1/2</small><button class="x" type="button" aria-label="Đóng">✕</button></div>
     <label for="kg" id="kgLabel">Tạ (kg)</label>
@@ -309,44 +334,58 @@
     return false;
   };
 
-  // Huy hiệu SVG: Gỗ có vân, Sắt có đinh tán, từ Bạc có cánh, Bạch kim có vương miện, Kim cương có đá quý,
-  // Cao thủ cánh đôi + 3 viên đá, Huyền thoại thêm hào quang. Hạt nhỏ dưới khiên = bậc phụ I/II/III.
+  // Huy hiệu SVG, càng lên cao càng nhiều chi tiết: Gỗ có vân, Sắt có đinh tán, từ Bạc có cánh lông vũ (2 → 5 lông mỗi bên),
+  // Bạch kim có vương miện, Kim cương gắn đá, Cao thủ 3 viên đá, Huyền thoại thêm hào quang. Dải băng ngang khiên ghi bậc phụ I/II/III.
+  // Khiên gồm viền (r) + mặt (m) chia hai nửa sáng tối để nổi khối; .glint là vệt sáng quét qua, chỉ bật ở huy hiệu lớn.
   const mix = (hex, to, a) => '#' + [1, 3, 5].map(i => Math.round(parseInt(hex.slice(i, i + 2), 16) * (1 - a) + to * a).toString(16).padStart(2, '0')).join('');
-  document.body.insertAdjacentHTML('afterbegin', `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>${TIERS.map((t, i) => `
+  const SHIELD = 'M60 14 L95 27 L91 70 Q87 91 60 106 Q33 91 29 70 L25 27 Z';
+  document.body.insertAdjacentHTML('afterbegin', `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+    <clipPath id="sc"><path d="${SHIELD}"/></clipPath>${TIERS.map((t, i) => `
     <linearGradient id="m${i}" x1="0" y1="0" x2=".35" y2="1">
       <stop offset="0" stop-color="${mix(t.color, 255, .55)}"/><stop offset=".47" stop-color="${t.color}"/>
       <stop offset=".53" stop-color="${mix(t.color, 0, .35)}"/><stop offset="1" stop-color="${mix(t.color, 255, .2)}"/>
+    </linearGradient>
+    <linearGradient id="r${i}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${mix(t.color, 255, .75)}"/><stop offset=".45" stop-color="${mix(t.color, 255, .15)}"/><stop offset="1" stop-color="${mix(t.color, 0, .5)}"/>
     </linearGradient>`).join('')}</defs></svg>`);
-  const SHIELD = 'M60 16 L94 29 L90 70 Q86 90 60 104 Q34 90 30 70 L26 29 Z';
-  const WING = 'M31 40 L4 32 L12 45 L1 50 L13 58 L6 67 L31 66 Z';
-  const WING2 = 'M33 36 L12 13 L15 27 L4 28 L31 50 Z';
+  // Lông cánh bên trái, từ dưới lên; bên phải là bản lật gương.
+  const FEATHERS = ['M34 60 Q20 68 10 73 Q22 78 34 71 Z', 'M34 51 Q15 56 3 55 Q14 68 34 63 Z', 'M34 42 Q13 44 -1 37 Q9 54 34 55 Z',
+    'M34 33 Q17 30 4 17 Q10 37 34 46 Z', 'M37 30 Q25 20 19 1 Q16 24 34 40 Z'];
   const CROWN = 'M38 28 L40 1 L51 13 L60 -5 L69 13 L80 1 L82 28 Z';
   const BARBELL = 'M38 58h44v4H38z M43 49h5v22h-5z M72 49h5v22h-5z M49 52h3v16h-3z M68 52h3v16h-3z';
-  const GLOSS = 'M28 30.5 L60 18 L92 30.5 L91.4 42 Q60 30 28.8 46 Z';
-  const GRAIN = 'M33 38 Q60 31 87 38 M37 82 Q60 88 83 82 M46 93 Q60 97 74 93';
-  const gem = (x, y, s) => `<path d="M${x} ${y - s}L${x + s * .75} ${y}L${x} ${y + s}L${x - s * .75} ${y}Z" fill="#e4f7ff" stroke="#fff" stroke-width="1.2"/>`;
+  const GRAIN = 'M35 40 Q60 34 85 40 M38 76 Q60 82 82 76 M46 89 Q60 93 74 89';
+  // Hào quang của Huyền thoại: ngôi sao 16 cánh sau khiên.
+  const BURST = [...Array(32)].map((_, i) => { const a = i * Math.PI / 16, r = i % 2 ? 45 : 60; return `${(60 + Math.sin(a) * r).toFixed(1)} ${(58 - Math.cos(a) * r).toFixed(1)}`; }).join(' ');
+  const gem = (x, y, s) => { const w = s * .72; return `<g stroke="#fff" stroke-width=".7" stroke-linejoin="round">
+    <path d="M${x} ${y - s}L${x - w} ${y}H${x}Z" fill="#f6fdff"/><path d="M${x} ${y - s}L${x + w} ${y}H${x}Z" fill="#bfe8ff"/>
+    <path d="M${x - w} ${y}L${x} ${y + s}V${y}Z" fill="#9fd6fb"/><path d="M${x + w} ${y}L${x} ${y + s}V${y}Z" fill="#6fb4ec"/></g>`; };
+  const svg = body => `<svg class="emblem" viewBox="0 -14 120 134" aria-hidden="true">${body}</svg>`;
+  // Ô trống: bài hoặc nhóm cơ chưa ghi.
+  const SLOT = svg(`<path d="${SHIELD}" fill="#ffffff0a" stroke="#8c929e" stroke-opacity=".55" stroke-width="2.5" stroke-dasharray="6 6" stroke-linejoin="round"/>
+    <path d="${BARBELL}" fill="#8c929e" fill-opacity=".4"/>`);
   function emblem(t, sub) {
-    const f = `url(#m${t})`, c = TIERS[t].color, dark = mix(c, 0, .55);
-    const wing = (d, s) => `<path d="${d}" fill="${f}" stroke="${dark}" stroke-width="1.5" transform="translate(31 54) scale(${s}) translate(-31 -54)"/>`;
-    const pair = (d, s) => wing(d, s) + `<g transform="matrix(-1 0 0 1 120 0)">${wing(d, s)}</g>`;
-    const w = [0, 0, 0, .6, .85, .95, 1, 1, 1][t];
-    return `<svg class="emblem" viewBox="0 -8 120 128" aria-hidden="true">
-      ${t === TOP ? `<circle cx="60" cy="58" r="52" fill="${c}" opacity=".22"/>` + [...Array(16)].map((_, i) =>
-        `<path d="M60 58 L58.5 ${i % 2 ? 4 : -10} L61.5 ${i % 2 ? 4 : -10} Z" fill="${mix(c, 255, .45)}" opacity=".55" transform="rotate(${i * 22.5} 60 58)"/>`).join('') : ''}
-      ${t >= 7 ? pair(WING2, 1) : ''}
-      ${w ? pair(WING, w) : ''}
-      ${t >= 5 ? `<path d="${CROWN}" fill="${f}" stroke="${dark}" stroke-width="1.5"/>` : ''}
-      ${t >= 6 ? gem(60, -6, 8) : ''}
-      ${t >= 7 ? gem(40, 2, 4.5) + gem(80, 2, 4.5) : ''}
-      <path d="${SHIELD}" fill="${f}" stroke="${dark}" stroke-width="2.5"/>
-      <path d="${GLOSS}" fill="#fff" opacity=".16"/>
+    const face = `url(#m${t})`, rim = `url(#r${t})`, c = TIERS[t].color, dark = mix(c, 0, .6), ink = mix(c, 0, .72);
+    const n = [0, 0, 0, 2, 3, 3, 4, 5, 5][t];
+    const wing = FEATHERS.slice(n < 4 ? 1 : 0, n < 4 ? n + 1 : n).map(d => `<path d="${d}" fill="${face}" stroke="${dark}" stroke-width="1.3" stroke-linejoin="round"/>`).join('');
+    return svg(`
+      ${t === TOP ? `<polygon points="${BURST}" fill="${mix(c, 255, .35)}" opacity=".5"/><circle cx="60" cy="58" r="45" fill="${c}" opacity=".35"/>` : ''}
+      ${n ? `${wing}<g transform="matrix(-1 0 0 1 120 0)">${wing}</g>` : ''}
+      ${t >= 5 ? `<path d="${CROWN}" fill="${face}" stroke="${dark}" stroke-width="1.5" stroke-linejoin="round"/>` : ''}
+      ${t >= 6 ? gem(60, -5, 8) : ''}${t >= 7 ? gem(40, 2, 4.5) + gem(80, 2, 4.5) : ''}
+      <path d="${SHIELD}" fill="${rim}" stroke="${dark}" stroke-width="2.5" stroke-linejoin="round"/>
+      <g transform="translate(60 60) scale(.86) translate(-60 -60)">
+        <path d="${SHIELD}" fill="${face}"/>
+        <path d="M60 14 L95 27 L91 70 Q87 91 60 106 Z" fill="#000" opacity=".2"/>
+        <path d="M60 14 L25 27 L26 39 Q44 31 60 31 Z" fill="#fff" opacity=".24"/>
+        <path d="${SHIELD}" fill="none" stroke="#fff" stroke-opacity=".4" stroke-width="1.2"/>
+      </g>
       ${t === 0 ? `<path d="${GRAIN}" fill="none" stroke="${dark}" stroke-opacity=".5" stroke-width="1.6"/>` : ''}
-      ${t === 1 ? [[36, 36], [84, 36], [40, 79], [80, 79]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2.6" fill="${mix(c, 255, .5)}" stroke="${dark}"/>`).join('') : ''}
-      ${t >= 2 ? `<path d="${SHIELD}" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="2.5" transform="translate(60 60) scale(.8) translate(-60 -60)"/>` : ''}
-      <path d="${BARBELL}" fill="${mix(c, 0, .65)}" fill-opacity=".85"/>
-      ${sub != null && t < TOP ? [...Array(sub + 1)].map((_, i) => { const x = 60 + (i - sub / 2) * 11;
-        return `<path d="M${x} 106L${x + 4} 111L${x} 116L${x - 4} 111Z" fill="${mix(c, 255, .45)}" stroke="${dark}" stroke-width="1.2"/>`; }).join('') : ''}
-    </svg>`;
+      ${t === 1 ? [[38, 37], [82, 37], [42, 78], [78, 78]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2.6" fill="${mix(c, 255, .5)}" stroke="${dark}"/>`).join('') : ''}
+      <path d="${BARBELL}" fill="#fff" fill-opacity=".35" transform="translate(0 1.2)"/><path d="${BARBELL}" fill="${ink}"/>
+      <g clip-path="url(#sc)"><path class="glint" d="M-36 0 H-12 L-48 120 H-72 Z"/></g>
+      ${sub != null && t < TOP ? `<path d="M23 79 L11 75 L16 84 L11 93 L23 92 Z M97 79 L109 75 L104 84 L109 93 L97 92 Z" fill="${mix(c, 0, .45)}" stroke="${dark}" stroke-width="1.2" stroke-linejoin="round"/>
+        <path d="M21 77 Q60 85 99 77 L99 91 Q60 99 21 91 Z" fill="${mix(c, 255, .55)}" stroke="${dark}" stroke-width="1.5" stroke-linejoin="round"/>
+        <text x="60" y="93.6" text-anchor="middle" font-family="Big Shoulders Display,sans-serif" font-weight="800" font-size="13" letter-spacing="1.6" fill="${ink}">${SUBS[sub]}</text>` : ''}`);
   }
 
   // ---- Trạng thái giao diện: bài đang chọn (nhóm cơ đang chọn = nhóm của bài đó) và kết quả xếp hạng hiện tại ----
@@ -370,36 +409,28 @@
     $('me').textContent = state.bw ? `${state.sex === 'f' ? 'Nữ' : 'Nam'}, ${fmt(state.bw)} kg` : 'Nhập cân nặng';
 
     const o = st.overall, t = o ? o.tier : 0, hero = $('overall');
-    hero.style.setProperty('--c', o ? TIERS[t].color : '#3a414d');
+    document.documentElement.style.setProperty('--c', o ? TIERS[t].color : '#3a414d');
     hero.classList.toggle('none', !o);
-    hero.innerHTML = `<div class="flex top">${emblem(t, o?.sub)}<div class="grow">
-        <h2 class="tier-name">${o ? label(t, o.sub) : 'Chưa có hạng'}</h2>
-        <p class="sub">${o ? `Hạng tổng, đã ghi ${Object.keys(st.byGroup).length}/${Object.keys(GROUPS).length} nhóm cơ`
-          : state.bw ? 'Ghi mức tạ đầu tiên bên dưới để nhận hạng' : 'Nhập cân nặng để bắt đầu xếp hạng'}</p>
-        ${o ? `${bar(o.progress, t < TOP)}<small>${t < TOP ? `Tiến độ lên ${TIERS[t + 1].name}: ${Math.round(o.progress * 100)}%` : 'Bạn đã ở hạng cao nhất'}</small>` : ''}
-      </div></div>
-      ${state.bw ? '' : '<button id="start" class="primary" type="button">Nhập cân nặng</button>'}
-      <button class="ladder" type="button" aria-label="Xem yêu cầu từng rank">${TIERS.map((_, i) => emblem(i).replace('class="emblem"', `class="emblem ${!o ? '' : i < t ? 'done' : i === t ? 'now' : ''}"`)).join('')}</button>
-      <small>Chạm vào dãy huy hiệu để xem yêu cầu từng rank</small>`;
+    hero.innerHTML = `<div class="trophy"><i class="rays"></i>${o ? emblem(t, o.sub) : SLOT}</div>
+      <h2 class="tier-name">${o ? label(t, o.sub) : 'Chưa có hạng'}</h2>
+      <p class="sub">${o ? `Hạng tổng, đã ghi ${Object.keys(st.byGroup).length}/${Object.keys(GROUPS).length} nhóm cơ`
+        : state.bw ? 'Ghi mức tạ đầu tiên để nhận hạng' : 'Nhập cân nặng để bắt đầu xếp hạng'}</p>
+      ${o ? `${bar(o.progress, t < TOP)}<small>${t < TOP ? `Tiến độ lên ${TIERS[t + 1].name}: ${Math.round(o.progress * 100)}%` : 'Bạn đã ở hạng cao nhất'}</small>` : ''}
+      <button class="ladder" type="button" aria-label="Xem yêu cầu từng rank">${TIERS.map((_, i) => emblem(i).replace('class="emblem"', `class="emblem ${!o ? '' : i < t ? 'done' : i === t ? 'now' : ''}"`)).join('')}›</button>`;
 
     $('groups').innerHTML = Object.entries(GROUPS).map(([g, name]) => {
       const r = st.byGroup[g];
-      return `<label class="${r ? '' : 'empty'}" style="--c:${r ? TIERS[r.tier].color : '#3a414d'}">
+      return `<label style="--c:${r ? TIERS[r.tier].color : '#3a414d'}">
         <input type="radio" name="group" value="${g}"${g === group() ? ' checked' : ''} aria-label="${name}: ${r ? label(r.tier, r.sub) : 'chưa ghi'}" />
-        ${emblem(r ? r.tier : 0, r?.sub)}${name}</label>`;
+        ${r ? emblem(r.tier, r.sub) : SLOT}${name}</label>`;
     }).join('');
 
-    $('ex').innerHTML = inGroup(group()).map(id =>
-      `<label><input type="radio" name="ex" value="${id}"${id === cur ? ' checked' : ''} />${short(id)}</label>`).join('');
-    const rec = st.byEx[cur];
-    $('curInfo').textContent = !state.bw ? 'Cần nhập cân nặng trước khi ghi.'
-      : rec ? `Kỷ lục ${short(cur)}: ${load(cur, rec.entry.kg)} × ${rec.entry.reps} rep, ${label(rec.tier, rec.sub)}.` : `Chưa ghi ${short(cur)} lần nào.`;
-
+    $('open').textContent = state.bw ? `Ghi mức tạ: ${short(cur)}` : 'Nhập cân nặng';
     $('listTitle').textContent = `Bài tập nhóm ${GROUPS[group()]}`;
     $('list').innerHTML = inGroup(group()).map(id => {
       const ex = EXERCISES[id], r = st.byEx[id];
       const more = `<button class="more" type="button" data-detail="${id}" aria-label="Lịch sử và yêu cầu rank của ${ex.name}">›</button>`;
-      if (!r) return `<li class="empty" data-id="${id}">${emblem(0)}
+      if (!r) return `<li class="empty" data-id="${id}">${SLOT}
         <div class="grow"><b>${ex.name}</b><small>Chưa ghi. Chạm để ghi.</small></div>${more}</li>`;
       return `<li data-id="${id}" style="--c:${TIERS[r.tier].color}">${emblem(r.tier, r.sub)}
         <div class="grow"><div class="head"><b>${ex.name}</b><span class="tier">${label(r.tier, r.sub)}</span></div>
@@ -408,14 +439,12 @@
     }).join('');
 
     // Dựng lại nút chọn thì mất focus bàn phím; trả focus về nút đang chọn.
-    if (focus === 'group' || focus === 'ex') document.querySelector(`input[name="${focus}"]:checked`)?.focus({ preventScroll: true });
+    if (focus === 'group') document.querySelector('input[name="group"]:checked')?.focus({ preventScroll: true });
   }
 
-  // ---- Chọn bài trên trang chính ----
+  // ---- Chọn bài trên trang chính: chạm một dòng là ghi bài đó; nút dính đáy ghi bài đang chọn (bài vừa ghi gần nhất hoặc bài tốt nhất của nhóm) ----
   const select = id => { cur = id; render(); };
-  // Chọn nhóm cơ: mở bài tốt nhất của nhóm, nhóm chưa ghi thì mở bài đầu tiên.
   $('groups').addEventListener('input', e => select(st.byGroup[e.target.value]?.entry.id ?? inGroup(e.target.value)[0]));
-  $('ex').addEventListener('input', e => select(e.target.value));
   $('open').onclick = () => openLog(cur);
   $('list').onclick = e => {
     const more = e.target.closest('[data-detail]');
@@ -431,6 +460,8 @@
   function step(n) {
     for (const s of $('log').querySelectorAll('[data-step]')) s.hidden = Number(s.dataset.step) !== n;
     $('log').classList.remove('typing');
+    $('log').classList.toggle('show', n === 3);
+    if (n < 3) calm();
     if (n === 2) $('kgEcho').textContent = load(cur, parseFloat($('kg').value));
     check();
     // Không focus ô số để bàn phím không tự bật; nút chính chưa bấm được thì focus nút +.
@@ -479,7 +510,7 @@
     else if (b.id === 'undo') undo();
     else if (b.id === 'done' || b.classList.contains('x')) $('log').close();
   };
-  $('log').addEventListener('close', () => { clearTimeout(timer); finish = saved = null; render(); });
+  $('log').addEventListener('close', () => { clearTimeout(timer); calm(); finish = saved = null; render(); });
 
   function reveal() {
     if (!kgOk() || !repsOk()) return;
@@ -501,51 +532,120 @@
         : level(o) > level(ob) ? [emblem(o.tier, o.sub), `Hạng tổng lên ${label(o.tier, o.sub)}`]
         : level(o) < level(ob) && [emblem(o.tier, o.sub), `Hạng tổng xuống ${label(o.tier, o.sub)} vì nhóm ${GROUPS[g]} mới ghi còn thấp`],
     ].filter(Boolean);
+    const stamp = !old ? 'Rank đầu tiên' : level(r) > level(old) ? 'Lên bậc' : r.oneRm > old.oneRm ? 'Kỷ lục mới' : '';
+    const stats = [[`<span id="orm">${fmt(r.oneRm)}</span> kg`, '1RM ước tính'],
+      [`${r.ratio.toLocaleString('vi-VN', { maximumFractionDigits: 2 })}×`, 'cân nặng'],
+      r.next && [`+${fmt(r.next.kg)} kg`, `× ${reps} rep để lên ${label(r.next.tier, r.next.sub)}`]].filter(Boolean);
     $('result').innerHTML = `<div class="dots" aria-hidden="true">${TIERS.map(t => `<i style="--dc:${t.color}"></i>`).join('')}</div>
-      <div class="stage" aria-hidden="true"></div>
+      <div class="stage" aria-hidden="true"><i class="rays"></i><i class="ring"></i><i class="ring"></i><div class="medal"></div></div>
+      ${stamp ? `<p class="stamp" aria-hidden="true">${stamp}</p>` : ''}
       <h2 class="tier-name" aria-hidden="true"></h2>
       <div class="after">
         <p class="sub">${short(id)}, ${load(id, kg)} × ${reps} rep</p>
         <div class="bar${r.tier < TOP ? ' seg' : ''}"><i style="width:0"></i></div>
-        <small>1RM ước tính ${fmt(r.oneRm)} kg, gấp ${r.ratio.toLocaleString('vi-VN', { maximumFractionDigits: 2 })} lần cân nặng. ${next(r, reps)}.</small>
+        <div class="stats">${stats.map(([v, k]) => `<div><b>${v}</b><small>${k}</small></div>`).join('')}</div>
+        ${r.next ? '' : '<small>Đã ở hạng cao nhất.</small>'}
         ${ex.machine ? '<small>Máy mỗi phòng tập nặng nhẹ khác nhau, rank bài này chỉ để tham khảo.</small>' : ''}
-        <ul class="news">${news.map(([mark, text]) => `<li>${mark.startsWith('<') ? mark : `<span class="mark">${mark}</span>`}<span class="grow">${text}</span></li>`).join('')}</ul>
+        <ul class="news">${news.map(([mark, text], i) => `<li style="--i:${i}">${mark.startsWith('<') ? mark : `<span class="mark">${mark}</span>`}<span class="grow">${text}</span></li>`).join('')}</ul>
         <div class="actions"><button id="undo" class="ghost" type="button" aria-label="Hoàn tác lần ghi này">Hoàn tác</button>
           <button id="done" class="primary" type="button">Xong</button></div>
       </div>`;
     step(3);
-    climb(r, `${short(id)}, ${load(id, kg)} × ${reps} rep: ${label(r.tier, r.sub)}. ${news.map(n => n[1]).join('. ')}.`);
+    fx.width = fx.clientWidth * devicePixelRatio;
+    fx.height = fx.clientHeight * devicePixelRatio;
+    climb(r, old ? old.oneRm : 0, `${short(id)}, ${load(id, kg)} × ${reps} rep: ${label(r.tier, r.sub)}. ${news.map(n => n[1]).join('. ')}. ${next(r, reps)}.`);
   }
 
-  // Leo bậc: huy hiệu đổi lần lượt từ Gỗ lên, mỗi nấc nhanh hơn nấc trước, rồi đáp xuống rank đạt được.
+  // Tia lửa vẽ trên một canvas phủ cả bảng: bắn ra từ tâm huy hiệu, và tàn lửa (ember) bay lên từ đáy sau khi đáp.
+  // ponytail: mỗi hạt một nét vẽ, vài trăm hạt là trần; cần nhiều hơn thì gộp lô hoặc chuyển WebGL.
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
-  function climb(r, spoken) {
-    const box = $('result'), stage = box.querySelector('.stage'), name = box.querySelector('.tier-name'), dots = box.querySelectorAll('.dots i');
+  const fx = $('fx'), pen = fx.getContext('2d');
+  let parts = [], raf = 0, ember = '';
+  const calm = () => { ember = ''; parts = []; };
+  function sparks(n, color, power) {
+    const b = fx.getBoundingClientRect(), m = $('result').querySelector('.medal').getBoundingClientRect();
+    const x = m.left + m.width / 2 - b.left, y = m.top + m.height / 2 - b.top;
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, v = power * (.25 + Math.random());
+      parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - power * .25, g: .16, life: 1, fade: .012 + Math.random() * .022, w: 1 + Math.random() * 2.2, color });
+    }
+    raf ||= requestAnimationFrame(draw);
+  }
+  function draw() {
+    const d = devicePixelRatio, w = fx.clientWidth, h = fx.clientHeight;
+    pen.setTransform(d, 0, 0, d, 0, 0);
+    pen.clearRect(0, 0, w, h);
+    pen.globalCompositeOperation = 'lighter';
+    pen.lineCap = 'round';
+    if (ember && Math.random() < .3) parts.push({ x: Math.random() * w, y: h + 4, vx: (Math.random() - .5) * .4, vy: -.6 - Math.random() * 1.4, g: 0, life: 1, fade: .004 + Math.random() * .006, w: 1 + Math.random() * 1.6, color: ember });
+    parts = parts.filter(p => p.life > 0);
+    for (const p of parts) {
+      p.x += p.vx; p.y += p.vy; p.vy += p.g; p.vx *= .985; p.life -= p.fade;
+      pen.globalAlpha = Math.max(0, p.life);
+      pen.strokeStyle = p.color;
+      pen.lineWidth = p.w;
+      pen.beginPath(); pen.moveTo(p.x - p.vx * 1.6, p.y - p.vy * 1.6); pen.lineTo(p.x, p.y); pen.stroke();
+    }
+    raf = parts.length || ember ? requestAnimationFrame(draw) : 0;
+  }
+  const count = (el, from, to) => {
+    const t0 = performance.now();
+    (function f(now) {
+      const k = Math.min(1, (now - t0) / 900);
+      el.textContent = fmt(from + (to - from) * (1 - (1 - k) ** 3));
+      if (k < 1 && el.isConnected) requestAnimationFrame(f);
+    })(t0);
+  };
+
+  // Leo bậc: huy hiệu lật qua từng rank từ Gỗ, mỗi nấc nhanh hơn nấc trước; nín một nhịp; rồi huy hiệu thật rơi xuống.
+  // from = 1RM kỷ lục cũ, để con số 1RM chạy từ mức cũ lên mức mới.
+  function climb(r, from, spoken) {
+    const log = $('log'), box = $('result'), medal = box.querySelector('.medal'), ring = box.querySelector('.ring'), name = box.querySelector('.tier-name'), dots = box.querySelectorAll('.dots i');
+    const glow = t => mix(TIERS[t].color, 255, .35);
     const show = (t, sub) => {
-      $('log').style.setProperty('--c', TIERS[t].color);
-      stage.innerHTML = emblem(t, sub);
+      log.style.setProperty('--c', TIERS[t].color);
+      medal.innerHTML = emblem(t, sub);
       name.textContent = sub == null ? TIERS[t].name : label(t, sub);
-      dots.forEach((d, i) => d.classList.toggle('on', i <= t));
+      dots.forEach((d, i) => { d.classList.toggle('on', i <= t); d.classList.toggle('at', i === t); });
+    };
+    const impact = () => {   // chạm đích: lóe sáng, rung, tia lửa, số 1RM chạy
+      log.animate([{ filter: 'brightness(2.6) saturate(1.4)' }, { filter: 'none' }], { duration: 520, easing: 'ease-out' });
+      box.animate([[0, 0], [-7, 5], [6, -4], [-4, 3], [2, -1], [0, 0]].map(([x, y]) => ({ transform: `translate(${x}px,${y}px)` })), { duration: 320 });
+      sparks(40 + r.tier * 14, glow(r.tier), 9 + r.tier);
+      ember = glow(r.tier);
+      count($('orm'), from, r.oneRm);
     };
     const land = () => {
       clearTimeout(timer);
       finish = null;
+      for (const a of medal.getAnimations()) a.cancel();
       render();
       show(r.tier, r.sub);
       box.classList.add('landed');
       requestAnimationFrame(() => { box.querySelector('.bar i').style.width = `${r.progress * 100}%`; });
       $('announce').textContent = spoken;
       $('done').focus({ preventScroll: true });
+      if (reduce.matches) return;
+      medal.animate([{ transform: 'scale(2.8) rotate(-12deg)', opacity: 0 }, { transform: 'scale(.9)', opacity: 1, offset: .42 },
+        { transform: 'scale(1.07)', offset: .68 }, { transform: 'none' }], { duration: 640, easing: 'ease-out' });
+      timer = setTimeout(impact, 260);
     };
     box.classList.remove('landed');
     if (reduce.matches) return land();
     finish = land;
     let t = 0;
     (function tick() {
-      if (t >= r.tier) return land();
+      if (t >= r.tier) {
+        medal.animate([{ transform: 'none', opacity: 1 }, { transform: 'scale(.5)', opacity: 0 }], { duration: 300, easing: 'ease-in', fill: 'forwards' });
+        return (timer = setTimeout(land, 320));
+      }
       show(t);
-      stage.firstElementChild.animate([{ transform: 'scale(.8)' }, { transform: 'scale(1)' }], { duration: 150, easing: 'ease-out' });
-      timer = setTimeout(tick, Math.max(110, 240 - t * 20));
+      const ms = Math.max(130, 300 - t * 28);
+      medal.animate([{ transform: 'perspective(500px) rotateY(-95deg) scale(.75)' }, { transform: 'none' }], { duration: ms, easing: 'cubic-bezier(.2,.9,.3,1.3)' });
+      ring.animate([{ transform: 'scale(.6)', opacity: .9 }, { transform: 'scale(2.1)', opacity: 0 }], { duration: 420, easing: 'ease-out' });
+      name.animate([{ transform: 'translateY(55%)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: Math.min(ms, 180) });
+      sparks(8 + t * 2, glow(t), 4 + t * .6);
+      timer = setTimeout(tick, ms);
       t++;
     })();
   }
@@ -575,7 +675,7 @@
   const tiersNote = id => (state.bw ? `tính cho 1 rep ở cân nặng ${fmt(state.bw)} kg` : 'tính theo số lần cân nặng, nhập cân nặng để xem ra kg');
 
   function openTiers() {
-    $('tiersSub').textContent = `Mức cần đạt với ${EXERCISES[cur].name}, ${tiersNote(cur)}. Muốn xem bài khác thì chọn bài ở phần Ghi mức tạ.`;
+    $('tiersSub').textContent = `Mức cần đạt với ${EXERCISES[cur].name}, ${tiersNote(cur)}. Muốn xem bài khác thì bấm › ở dòng bài đó.`;
     $('tiersList').innerHTML = tierRows(cur);
     $('tiers').showModal();
     $('tiers').scrollTop = 0;
@@ -622,7 +722,7 @@
     const id = detailId, ex = EXERCISES[id], r = st.byEx[id];
     const entries = state.log.filter(e => e.id === id).sort((a, b) => a.t - b.t);
     $('detail').style.setProperty('--c', r ? TIERS[r.tier].color : '#3a414d');
-    $('dBody').innerHTML = `<div class="flex top${r ? '' : ' empty'}">${emblem(r ? r.tier : 0, r?.sub)}<div class="grow">
+    $('dBody').innerHTML = `<div class="flex top">${r ? emblem(r.tier, r.sub) : SLOT}<div class="grow">
         <h2>${ex.name}</h2>
         <p class="sub">${r ? `${label(r.tier, r.sub)}. Kỷ lục ${load(id, r.entry.kg)} × ${r.entry.reps} rep.` : 'Chưa ghi lần nào.'}</p></div></div>
       <button class="ghost" type="button" data-log="${id}">Ghi mức tạ bài này</button>
@@ -661,7 +761,7 @@
     dlg.showModal();
   };
   $('me').onclick = openProfile;
-  $('overall').onclick = e => (e.target.closest('#start') ? openProfile() : e.target.closest('.ladder') && openTiers());
+  $('overall').onclick = e => e.target.closest('.ladder') && openTiers();
   dlg.addEventListener('close', () => {
     const bw = parseFloat($('bw').value);
     if (bw >= 30 && bw <= 250) state.bw = bw;
