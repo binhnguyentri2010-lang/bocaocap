@@ -1,5 +1,7 @@
 # Chill City 🌆🌧️
 
+> Repo này còn có **[GymRank](gymrank/)**: web app xếp hạng sức mạnh theo kg × rep.
+
 Phố phường Việt Nam 3D để thư giãn buổi tối: **hoàng hôn** / **đêm**, bật **mưa**. Nhà ống sơn màu với ban công, biển hiệu (Phở, Cà phê, Bánh mì…), mái bạt, bồn nước inox, dây điện chằng chịt, dây đèn giăng ngang phố, quán vỉa hè ghế nhựa, xe máy đỗ trước cửa hàng — và hàng trăm **xe máy** chạy dàn hàng ngang, len lỏi, dồn ở đèn đỏ (mưa thì mặc áo mưa), xen lẫn taxi, ô tô và xe buýt. Chạy trên trình duyệt, tối ưu cho **laptop 16"** và **iPad 11"**.
 
 Không cần cài đặt hay build — chỉ là HTML + JavaScript dùng [three.js](https://threejs.org) (tải từ CDN).

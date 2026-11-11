@@ -1,0 +1,1089 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="GymRank" />
+  <meta name="theme-color" content="#060914" />
+  <title>GymRank</title>
+  <link rel="apple-touch-icon" href="icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@500;600;700&family=Be+Vietnam+Pro:wght@400;500;600&display=swap" />
+  <style>
+    /* Phong cách vũ trụ pha lê, hợp với bộ huy hiệu: nền xanh đen có sao và tinh vân, chữ có chân viết hoa giãn rộng,
+       khung kính mờ viền vàng nhạt, màu nhấn vàng champagne. Màu rank (--c) dùng cho ánh sáng quanh huy hiệu, tên rank và thanh tiến độ. */
+    @property --c { syntax:'<color>'; inherits:true; initial-value:#5a6488; }
+    :root { --bg:#060914; --panel:#141c3e8c; --panel2:#1c2550a6; --line:#e9c98a2e; --line2:#e9c98a66; --text:#eef1fa; --muted:#8e98b8;
+      --gold:#e9c98a; --gold2:#b98d4c; --ink:#1b1306; --c:#5a6488;
+      --serif:'Cormorant SC', 'Cormorant Garamond', Georgia, serif; --sans:'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+      --ease:cubic-bezier(.2,.9,.3,1); --pop:cubic-bezier(.3,1.5,.5,1);
+      /* Ảnh 9 huy hiệu (lưới 3×3, ô 520×280, nền trong suốt). Bản Artifact thay bằng data URI. */
+      --spr:url(ranks.webp);
+      color-scheme:dark; transition:--c .6s; }
+    :root { padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+      background:radial-gradient(70% 45% at 10% -5%,#2b2f74 0,transparent 70%) fixed, radial-gradient(55% 40% at 105% 35%,#3a1e62 0,transparent 70%) fixed,
+        radial-gradient(80% 50% at 50% 115%,#123462 0,transparent 70%) fixed, var(--bg); }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--text); font:15px/1.45 var(--sans); -webkit-tap-highlight-color:transparent; }
+    /* Trường sao và một đường cong tinh vân, đứng yên phía sau mọi thứ */
+    body::before { content:""; position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.5; animation:twinkle 7s ease-in-out infinite alternate;
+      background-image:radial-gradient(1px 1px at 22px 34px,#fff,transparent),radial-gradient(1px 1px at 148px 82px,#fffa,transparent),
+        radial-gradient(1.6px 1.6px at 94px 168px,#d7e4ff,transparent),radial-gradient(1px 1px at 208px 226px,#fff9,transparent),
+        radial-gradient(1.3px 1.3px at 262px 118px,#ffe9c4,transparent),radial-gradient(1px 1px at 40px 250px,#fff8,transparent);
+      background-size:300px 280px; }
+    body::after { content:""; position:fixed; z-index:-1; left:-40vw; top:12vh; width:180vw; height:90vh; border-radius:50%; pointer-events:none; rotate:-14deg;
+      border-top:1px solid #8fa6ff17; box-shadow:0 -6px 30px -12px #6f8cff26; }
+    @keyframes twinkle { to { opacity:.3; } }
+    main { max-width:480px; margin:auto; padding-block:10px 24px; overflow-x:clip;
+      padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px)); }
+    /* Mở app: các khối hiện dần và trồi nhẹ lần lượt */
+    main > * { animation:rise .8s calc(var(--i,0) * 110ms) var(--ease) backwards; }
+    header { display:flex; align-items:center; gap:10px; }
+    h1 { margin:0; flex:1; min-width:0; font:600 min(22px,5.6vw)/1 var(--serif); letter-spacing:.18em; color:var(--text); white-space:nowrap; }
+    h1 b { font-weight:inherit; color:transparent; background:linear-gradient(180deg,#fff3d6,var(--gold) 55%,var(--gold2)); -webkit-background-clip:text; background-clip:text; }
+    /* Tiêu đề mục: chữ giãn rộng giữa hai đường kẻ mảnh, như nhãn dưới huy hiệu */
+    h3 { display:flex; align-items:center; gap:12px; margin:0 0 12px; font:600 17px/1 var(--serif); letter-spacing:.2em; text-transform:uppercase; color:var(--gold); }
+    h3::before, h3::after { content:""; flex:1; height:1px; background:linear-gradient(90deg,transparent,var(--line2)); }
+    h3::after { background:linear-gradient(90deg,var(--line2),transparent); }
+    small { display:block; color:var(--muted); font-size:12.5px; }
+    button { font:inherit; color:inherit; border:0; cursor:pointer; transition:transform .35s var(--pop), opacity .2s, background .25s, box-shadow .25s; }
+    button:active:not(:disabled) { transform:scale(.95); transition-duration:.06s; }
+    :focus-visible { outline:2px solid var(--gold); outline-offset:2px; }
+    .flex { display:flex; gap:14px; align-items:center; }
+    .grow { flex:1; min-width:0; }
+    .glass { background:linear-gradient(180deg,#1c2654a6,#0d1330a6); border:1px solid var(--line); border-radius:16px;
+      -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); box-shadow:inset 0 1px 0 #ffffff12, 0 10px 30px #0006; }
+    #me { padding:8px 14px; border:1px solid var(--line); border-radius:99px; background:#ffffff08; font:500 13px/1 var(--sans); letter-spacing:.04em; color:var(--muted); white-space:nowrap; }
+
+    /* ---- Huy hiệu: một ô của ảnh lưới (--x, --y), quầng sáng màu rank phía sau, vệt sáng quét chỉ trên phần pha lê (mask là chính ảnh) ---- */
+    .emb { --x:0; --y:0; position:relative; isolation:isolate; display:block; flex:none; width:80px; aspect-ratio:13/7; }
+    .emb > i { position:absolute; pointer-events:none; }
+    .emb .img, .emb .shine { inset:0; background:var(--spr) calc(var(--x) * 50%) calc(var(--y) * 50%) / 300% 300% no-repeat; }
+    .emb::before { content:""; position:absolute; z-index:-1; inset:8% 22%; border-radius:50%; filter:blur(8px); opacity:.7;
+      background:radial-gradient(closest-side,color-mix(in srgb,var(--c) 70%,transparent),transparent); animation:glow 3.2s ease-in-out infinite; }
+    .emb .shine { -webkit-mask:var(--spr) calc(var(--x) * 50%) calc(var(--y) * 50%) / 300% 300% no-repeat; mask:var(--spr) calc(var(--x) * 50%) calc(var(--y) * 50%) / 300% 300% no-repeat;
+      background:linear-gradient(105deg,transparent 42%,#fffd 50%,transparent 58%) 0 0 / 300% 100% no-repeat; mix-blend-mode:plus-lighter;
+      animation:shine 6s calc(var(--t) * -.7s) ease-in-out infinite; }
+    .emb.none { filter:grayscale(1) brightness(.75); opacity:.38; }
+    .emb.none::before, .emb.none .shine { display:none; }
+    /* Bậc phụ I/II/III: 1 đến 3 dấu ✦ dưới huy hiệu */
+    .subs { position:absolute; left:0; right:0; bottom:-.15em; text-align:center; font-size:max(9px,calc(var(--w,80px) * .11)); line-height:1; letter-spacing:.25em; text-indent:.25em;
+      color:color-mix(in srgb,var(--c),#fff 45%); text-shadow:0 0 6px var(--c); pointer-events:none; }
+    @keyframes glow { 50% { opacity:1; transform:scale(1.12); } }
+    @keyframes shine { 0%,62% { background-position:100% 0; } 92%,100% { background-position:0 0; } }
+
+    /* Huy hiệu lớn: tách ảnh thành cánh trái, cánh phải, lõi giữa để cánh "thở"; vòng quỹ đạo có sao chổi; chớp sáng sao 4 cánh ở lõi;
+       tia sáng tỏa phía sau; đốm sao lấp lánh. Bậc cao có thêm bụi sáng, tàn đỏ, cột sáng. */
+    .emb.big { width:var(--w,240px); --w:240px; animation:sway 7s ease-in-out infinite; transform-style:preserve-3d; }
+    .big .wl { clip-path:inset(0 50% 0 0); transform-origin:50% 54%; animation:wl 4.2s ease-in-out infinite; }
+    .big .wr { clip-path:inset(0 0 0 50%); transform-origin:50% 54%; animation:wr 4.2s ease-in-out infinite; }
+    .big .core { clip-path:polygon(41% 0,59% 0,59% 100%,41% 100%); }
+    .big::before { inset:-6% 8%; filter:blur(18px); }
+    .gr { z-index:-2; left:50%; top:52%; width:170%; aspect-ratio:1; translate:-50% -50%; opacity:.5; animation:spin 50s linear infinite;
+      background:repeating-conic-gradient(color-mix(in srgb,var(--c) 45%,transparent) 0 5deg,transparent 5deg 18deg);
+      -webkit-mask:radial-gradient(closest-side,#000 10%,transparent 72%); mask:radial-gradient(closest-side,#000 10%,transparent 72%); }
+    .flare { left:50%; top:52%; width:34%; aspect-ratio:1; translate:-50% -50%; mix-blend-mode:plus-lighter; animation:flare 3.4s ease-in-out infinite;
+      background:radial-gradient(circle,#fff 0 4%,color-mix(in srgb,var(--c),#fff 50%) 9%,transparent 34%),
+        linear-gradient(90deg,transparent,#fff 50%,transparent) center / 100% 2px no-repeat, linear-gradient(0deg,transparent,#fff 50%,transparent) center / 2px 100% no-repeat; }
+    .orb { position:absolute; inset:0; width:100%; height:100%; overflow:visible; fill:none; pointer-events:none; }
+    .orb ellipse { stroke:color-mix(in srgb,var(--oc,var(--c)),#fff 55%); stroke-width:1.1; stroke-linecap:round; stroke-dasharray:12 88;
+      filter:drop-shadow(0 0 2px var(--oc,var(--c))) drop-shadow(0 0 5px var(--oc,var(--c))); animation:orbit 3.6s linear infinite; }
+    .orb.o2 { rotate:-9deg; }
+    .orb.o2 ellipse { animation-duration:5.2s; animation-direction:reverse; stroke-dasharray:8 92; }
+    .tw { width:7%; aspect-ratio:1; translate:-50% -50%; mix-blend-mode:plus-lighter; opacity:0; animation:tw 2.6s ease-in-out infinite;
+      background:linear-gradient(90deg,transparent,#fff,transparent) center / 100% 1.5px no-repeat, linear-gradient(0deg,transparent,#fff,transparent) center / 1.5px 100% no-repeat,
+        radial-gradient(circle,#fff 0 8%,transparent 40%); }
+    .du { width:1.6%; aspect-ratio:1; border-radius:50%; bottom:14%; background:color-mix(in srgb,var(--dc,var(--c)),#fff 50%); box-shadow:0 0 6px var(--dc,var(--c));
+      opacity:0; animation:du 3.4s ease-out infinite; }
+    .t8 .du { --dc:#ffd98a; top:-4%; bottom:auto; animation-name:rain; }
+    .pl { z-index:-1; bottom:18%; width:5%; height:150%; filter:blur(3px); opacity:.0; animation:pl 2.8s ease-in-out infinite;
+      background:linear-gradient(0deg,transparent,color-mix(in srgb,var(--c),#fff 40%) 30%,transparent); }
+    .t4 .flare, .t7 .flare { animation:flare 3.4s ease-in-out infinite, hue 4s linear infinite; }
+    .t6 .flare { animation:beat 1.1s ease-in-out infinite; }
+    .t7 .gr, .t8 .gr { opacity:.75; animation-duration:30s; }
+    .t7 .orb.o2 { --oc:#e7c27a; }
+    @keyframes sway { 0%,100% { transform:translateY(0) rotateY(-7deg); } 50% { transform:translateY(-7px) rotateY(7deg); } }
+    @keyframes wl { 50% { transform:rotate(1.8deg); } }
+    @keyframes wr { 50% { transform:rotate(-1.8deg); } }
+    @keyframes flare { 0%,100% { transform:scale(.55) rotate(0); opacity:.7; } 45% { transform:scale(1.15) rotate(45deg); opacity:1; } }
+    @keyframes beat { 0%,100% { transform:scale(.6); } 15% { transform:scale(1.2); } 30% { transform:scale(.75); } 45% { transform:scale(1.1); } }
+    @keyframes hue { to { filter:hue-rotate(1turn); } }
+    @keyframes orbit { to { stroke-dashoffset:-100; } }
+    @keyframes tw { 0%,100% { opacity:0; transform:scale(.2) rotate(0); } 20% { opacity:1; transform:scale(1) rotate(45deg); } 40% { opacity:0; transform:scale(.2) rotate(90deg); } }
+    @keyframes du { from { transform:translateY(0); opacity:0; } 15% { opacity:1; } to { transform:translateY(-260%) translateX(30%); opacity:0; } }
+    @keyframes rain { from { transform:translateY(0); opacity:0; } 20% { opacity:1; } to { transform:translateY(900%); opacity:0; } }
+    @keyframes pl { 50% { opacity:.55; } }
+    @keyframes spin { to { transform:rotate(1turn); } }
+
+    /* Tên rank: chữ có chân viết hoa giãn rộng, ánh kim theo màu rank, hai đường kẻ hai bên và ✦ bên dưới như nhãn trong ảnh huy hiệu */
+    .tier-name { display:flex; align-items:center; justify-content:center; gap:.45em; margin:0; padding:.08em 0 0; font:700 34px/1.05 var(--serif); letter-spacing:.14em; text-transform:uppercase;
+      text-wrap:balance; text-align:center; }
+    .tier-name > span, #result .tier-name b { color:transparent; background:linear-gradient(180deg,#fff 15%,color-mix(in srgb,var(--c),#fff 35%) 60%,color-mix(in srgb,var(--c),#000 10%));
+      -webkit-background-clip:text; background-clip:text; filter:drop-shadow(0 0 14px color-mix(in srgb,var(--c) 55%,transparent)); }
+    .tier-name::before, .tier-name::after { content:""; flex:0 1 2.2em; height:1px; background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--c),#fff 30%)); }
+    .tier-name::after { background:linear-gradient(90deg,color-mix(in srgb,var(--c),#fff 30%),transparent); }
+    .star { display:block; margin:2px 0 0; text-align:center; font-size:12px; line-height:1; color:color-mix(in srgb,var(--c),#fff 40%); text-shadow:0 0 8px var(--c); }
+    .tier { font:600 15px/1 var(--serif); letter-spacing:.12em; text-transform:uppercase; color:color-mix(in srgb,var(--c),#fff 35%); white-space:nowrap; }
+    .sub { margin:6px 0 0; color:var(--muted); font-size:13.5px; }
+
+    /* Thanh tiến độ: đường mảnh phát sáng, đầu thanh là một ngôi sao nhỏ */
+    .bar { position:relative; height:3px; margin:9px 2px 7px; border-radius:3px; background:#ffffff14; }
+    .bar i { position:relative; display:block; height:100%; border-radius:inherit; transition:width .7s var(--ease);
+      background:linear-gradient(90deg,color-mix(in srgb,var(--c) 30%,transparent),color-mix(in srgb,var(--c),#fff 30%)); box-shadow:0 0 10px var(--c); }
+    .bar i::after { content:"✦"; position:absolute; right:-5px; top:50%; translate:0 -54%; font-size:11px; line-height:1; color:#fff; text-shadow:0 0 6px var(--c),0 0 12px var(--c); }
+    .bar.seg::before { content:""; position:absolute; inset:-3px 0; z-index:1;
+      background:linear-gradient(90deg,transparent calc(100%/3 - 1px),#ffffff40 0 calc(100%/3 + 1px),transparent 0 calc(200%/3 - 1px),#ffffff40 0 calc(200%/3 + 1px),transparent 0); }
+
+    /* Hạng tổng: huy hiệu lớn ở giữa (nghiêng theo ngón tay), tên rank có đường kẻ hai bên, tiến độ, dãy 9 huy hiệu nhỏ */
+    .hero { position:relative; margin:2px -16px 16px; padding:0 16px 4px; text-align:center; }
+    .trophy { position:relative; display:grid; place-items:center; height:min(190px,28dvh); perspective:700px; }
+    .trophy > .tilt { transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)); transition:transform .5s var(--ease); transform-style:preserve-3d; }
+    .trophy .emb { --w:min(300px,82vw,42dvh); }
+    .boot .trophy .emb { animation:appear 1.2s .2s var(--ease) backwards, sway 7s 1.4s ease-in-out infinite; }
+    .hero .tier-name { font-size:min(40px,calc(115vw / var(--n,8))); white-space:nowrap; margin-top:4px; }
+    .prog { max-width:320px; margin:8px auto 0; }
+    .prog > small { display:flex; justify-content:space-between; gap:8px; }
+    .prog b { font:600 15px/1 var(--sans); color:var(--text); }
+    .ladder { display:flex; justify-content:center; align-items:center; gap:2px; width:100%; margin-top:12px; padding:6px 8px; border-radius:99px; color:var(--muted); font-size:22px; line-height:1;
+      background:#ffffff06; border:1px solid var(--line); }
+    .ladder .emb { --w:34px; width:34px; flex:0 1 auto; min-width:0; }
+    .ladder .emb:not(.done,.now) { filter:grayscale(1) brightness(.55); opacity:.6; }
+    .ladder .emb:not(.now)::before { display:none; }
+    .ladder .now { --w:52px; width:52px; flex-shrink:.5; }
+    @keyframes appear { from { opacity:0; transform:scale(.4); filter:blur(14px) brightness(3); } }
+    @keyframes rise { from { transform:translateY(18px); opacity:0; filter:blur(4px); } }
+
+    /* 5 nhóm cơ: ô kính, ô đang chọn viền vàng sáng và nhuộm màu rank */
+    .groups { display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin-bottom:20px; }
+    .groups label { position:relative; display:flex; flex-direction:column; align-items:center; gap:5px; padding:9px 2px 8px; border-radius:12px; color:var(--muted);
+      min-width:0; font:600 min(12.5px,3.4vw)/1 var(--serif); letter-spacing:.06em; text-transform:uppercase; cursor:pointer; border:1px solid var(--line); background:#ffffff06;
+      transition:background .3s, color .3s, border-color .3s, box-shadow .3s, transform .35s var(--pop); }
+    .groups label:active { transform:scale(.93); transition-duration:.06s; }
+    .groups .emb { --w:52px; width:min(52px,100%); }
+    .groups label:has(input:checked) { color:var(--text); border-color:var(--line2);
+      background:radial-gradient(90% 70% at 50% 30%,color-mix(in srgb,var(--c) 30%,transparent),transparent),#ffffff0a;
+      box-shadow:0 0 18px color-mix(in srgb,var(--c) 30%,transparent), inset 0 1px 0 #ffffff1a; }
+    .groups input, fieldset input { position:absolute; opacity:0; pointer-events:none; }
+    label:has(input[type=radio]:focus-visible) { outline:2px solid var(--gold); outline-offset:2px; }
+    label { display:block; font-size:13px; color:var(--muted); }
+    input[type=number] { width:100%; margin-top:6px; padding:12px 14px; font:inherit; font-size:16px; color:var(--text); background:#0008; border:1px solid var(--line); border-radius:10px; }
+    /* Nút chính: vàng ánh kim, vệt sáng chạy qua theo nhịp */
+    .primary { position:relative; overflow:hidden; width:100%; padding:15px 18px; border-radius:14px; color:var(--ink); font:700 min(19px,4.8vw)/1 var(--serif); letter-spacing:.14em; text-transform:uppercase;
+      background:linear-gradient(180deg,#fbeac0,#e2bb76 45%,#b98a47); box-shadow:inset 0 1px 0 #fff8, inset 0 -2px 0 #0003, 0 8px 26px #e9c98a33; }
+    .primary::after { content:""; position:absolute; inset:0; background:linear-gradient(105deg,transparent 40%,#fff9 50%,transparent 60%) 0 0 / 300% 100% no-repeat;
+      animation:shine 4.5s ease-in-out infinite; }
+    .primary:disabled { opacity:.3; cursor:default; }
+    .primary:disabled::after { display:none; }
+    .ghost-btn { width:100%; margin-top:12px; padding:13px 12px; border-radius:14px; border:1px solid var(--line2); background:#ffffff08; color:var(--gold);
+      font:700 16px/1 var(--serif); letter-spacing:.16em; text-transform:uppercase; }
+    /* Nút ghi mức tạ dính đáy màn hình, dải nền mờ dần phía sau */
+    .cta { position:sticky; bottom:0; z-index:2; margin-inline:-16px; padding:30px 16px calc(12px + env(safe-area-inset-bottom,0px));
+      background:linear-gradient(transparent,#060914e6 55%); pointer-events:none; }
+    .cta .primary { pointer-events:auto; }
+
+    /* Danh sách: bài tập, lịch sử, bảng rank */
+    ul { list-style:none; margin:0; padding:0; }
+    li { display:flex; gap:12px; align-items:center; padding:12px 0; }
+    li + li { border-top:1px solid var(--line); }
+    li > .emb { --w:76px; width:76px; }
+    /* Dòng bài: thẻ kính, huy hiệu trái, tên bài, rank, tiến độ; 1RM là số lớn bên phải. Bài chưa ghi mờ đi. */
+    #list li { position:relative; gap:10px; margin-bottom:8px; padding:10px 4px 10px 8px; border:1px solid var(--line); border-radius:14px; cursor:pointer;
+      background:linear-gradient(90deg,color-mix(in srgb,var(--c) 14%,transparent),transparent 45%),linear-gradient(180deg,#19224ca6,#0c122ea6); box-shadow:inset 0 1px 0 #ffffff0d; }
+    .n { display:block; font:600 15.5px/1.2 var(--sans); }
+    #list .tier { font-size:13.5px; }
+    #list .bar { margin:7px 2px 6px; }
+    .orm { flex:none; text-align:right; }
+    .orm b { display:block; font:700 30px/.95 var(--serif); font-variant-numeric:lining-nums tabular-nums; }
+    .orm small { font-size:10.5px; letter-spacing:.12em; }
+    #list li.empty { opacity:.5; background:#ffffff05; }
+    #list li.empty .n { color:var(--muted); }
+    .more { flex:none; width:30px; height:44px; background:none; color:var(--muted); font-size:24px; line-height:1; }
+    .del { flex:none; background:none; color:var(--muted); padding:8px; font-size:13px; }
+    .tiers li { padding:8px 10px; border-top:0; border-radius:12px; }
+    .tiers .emb { --w:70px; width:70px; }
+    .tiers .mine { background:color-mix(in srgb,var(--c) 16%,transparent); box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 45%,transparent); }
+    .tiers .tier { font-size:18px; }
+
+    /* Hộp thoại: khung kính viền vàng nhạt, góc bo, có đường kẻ sáng trên đầu */
+    dialog { width:min(92vw,420px); max-height:88dvh; color:var(--text); border:1px solid var(--line2); border-radius:20px; padding:22px 20px 20px;
+      background:radial-gradient(120% 60% at 50% 0,color-mix(in srgb,var(--c) 18%,transparent),transparent 70%),linear-gradient(180deg,#151d42,#0a0f26);
+      box-shadow:0 30px 80px #000a, inset 0 1px 0 #ffffff1a; }
+    dialog[open] { animation:pop .45s var(--ease); }
+    dialog::backdrop { background:#03050ccc; -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); }
+    @keyframes pop { from { transform:translateY(20px) scale(.96); opacity:0; filter:blur(6px); } }
+    dialog h2 { margin:0; font:700 26px/1.1 var(--serif); letter-spacing:.1em; text-transform:uppercase; text-wrap:balance; color:var(--gold); }
+    dialog h3 { margin:22px 0 10px; font-size:15px; }
+    dialog .primary { margin-top:16px; }
+    fieldset { border:0; padding:0; margin:14px 0; display:flex; gap:10px; }
+    fieldset label { position:relative; flex:1; text-align:center; padding:12px; border-radius:12px; border:1px solid var(--line); background:#ffffff06; color:var(--muted);
+      font:700 16px/1 var(--serif); letter-spacing:.16em; text-transform:uppercase; cursor:pointer; transition:all .25s; }
+    fieldset label:has(input:checked) { color:var(--ink); border-color:transparent; background:linear-gradient(180deg,#fbeac0,#e2bb76 45%,#b98a47); }
+    #tiers small { margin:6px 0 10px; }
+
+    /* Chi tiết bài: biểu đồ 1RM theo thời gian */
+    #detail .top .emb { --w:104px; width:104px; }
+    .chart { display:block; width:100%; height:auto; font-variant-numeric:tabular-nums; }
+    .chart text { fill:var(--muted); font-size:10px; }
+    .chart .grid { stroke:#ffffff14; stroke-width:1; }
+    .chart .goal { stroke:var(--gold); stroke-opacity:.6; stroke-width:1; stroke-dasharray:4 4; }
+    .chart .lbl { paint-order:stroke; stroke:#0d132e; stroke-width:5px; stroke-linejoin:round; }
+    .chart .hit { fill:transparent; cursor:pointer; }
+    #read { min-height:2.8em; }
+
+    /* Bảng nhập 3 bước, bung lên từ đáy: 1 chỉ có kg, 2 chỉ có rep, 3 là rank */
+    .sheet { width:100%; max-width:480px; max-height:94dvh; margin:auto auto 0; border-radius:26px 26px 0 0; border-bottom:0; overflow-x:hidden;
+      padding:24px max(18px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px)); }
+    .sheet::before { content:""; position:absolute; left:50%; top:8px; width:40px; height:4px; translate:-50% 0; border-radius:4px; background:#ffffff26; }
+    .sheet[open] { animation:sheet .6s var(--ease); }
+    @keyframes sheet { from { transform:translateY(100%); } 70% { transform:translateY(-2%); } }
+    /* Gõ số trên điện thoại: đưa bảng lên đầu màn hình để bàn phím không che. */
+    .sheet.typing { margin:12px auto auto; border-radius:26px; }
+    .stephead { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+    .stephead h2, .stephead .link { flex:1; min-width:0; }
+    .stephead small { white-space:nowrap; font:600 13px/1 var(--serif); letter-spacing:.2em; }
+    .x { flex:none; width:40px; height:40px; border-radius:50%; background:#ffffff0a; color:var(--muted); font-size:16px; }
+    .link { background:none; padding:8px 0; color:var(--text); font:700 20px/1 var(--serif); letter-spacing:.1em; text-transform:uppercase; text-align:left; }
+    .link span { color:var(--gold); }
+    .cap { margin-top:8px; text-align:center; font:600 14px/1 var(--serif); letter-spacing:.24em; text-transform:uppercase; color:var(--muted); }
+    /* Số lớn ở giữa, − / + hai bên; chạm vào số để gõ số lẻ */
+    .readout { display:flex; align-items:center; gap:6px; margin:0 0 2px; }
+    .readout button { flex:none; width:52px; height:52px; border-radius:50%; border:1px solid var(--line2); background:#ffffff08; color:var(--gold); font-size:26px; line-height:1; }
+    .readout input[type=number] { flex:1; min-width:0; margin:0; padding:0; border:0; border-radius:0; background:none; text-align:center; color:transparent;
+      background:linear-gradient(180deg,#fff 20%,#f6e2b6 60%,var(--gold2)); -webkit-background-clip:text; background-clip:text;
+      font:700 min(100px,24vw)/1.05 var(--serif); font-variant-numeric:lining-nums tabular-nums; appearance:textfield; -moz-appearance:textfield; caret-color:var(--gold); }
+    .readout input::-webkit-inner-spin-button { appearance:none; }
+    .readout input:focus-visible { outline:none; box-shadow:0 2px 0 var(--gold); }
+    /* Thước trượt: dải vạch cuộn ngang dừng ở từng vạch (scroll-snap), kim vàng phát sáng cố định ở giữa, có ✦ trên đầu */
+    .ruler { position:relative; margin:4px -18px 8px; }
+    .ruler::before { content:""; position:absolute; z-index:1; left:50%; top:4px; width:2px; height:46px; translate:-50% 0; pointer-events:none;
+      background:linear-gradient(180deg,#fff,var(--gold)); box-shadow:0 0 8px var(--gold),0 0 18px var(--gold); }
+    .ruler::after { content:"✦"; position:absolute; z-index:1; left:50%; top:-9px; translate:-50% 0; font-size:15px; line-height:1; color:#fff; text-shadow:0 0 8px var(--gold),0 0 16px var(--gold); pointer-events:none; }
+    .track { display:flex; height:80px; overflow-x:auto; overscroll-behavior-x:contain; scroll-snap-type:x mandatory; scrollbar-width:none; touch-action:pan-x;
+      padding-inline:calc(50% - var(--w) / 2);
+      -webkit-mask:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent); mask:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent); }
+    .track::-webkit-scrollbar { display:none; }
+    .track:focus-visible { outline:none; background:#ffffff08; }
+    .track i { position:relative; flex:none; width:var(--w); scroll-snap-align:center; }
+    .track i::before { content:""; position:absolute; left:50%; top:8px; width:1px; height:12px; translate:-50% 0; background:#8e98b8; }
+    .track i.m::before { height:20px; background:#c4cbe0; }
+    .track i.L::before { width:2px; height:34px; background:linear-gradient(180deg,#fff,var(--gold)); }
+    .track i[data-l]::after { content:attr(data-l); position:absolute; left:50%; top:50px; translate:-50% 0; font:600 15px/1 var(--serif); color:var(--muted); white-space:nowrap; }
+    .hint { min-height:1.4em; margin-bottom:10px; text-align:center; }
+    .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+
+    /* Bước 3 chiếm cả màn hình: vũ trụ tối, sao bay tới, huy hiệu từng bậc ghép lại rồi vỡ, khựng, điểm sáng nổ, hạt sáng tạo thành huy hiệu thật.
+       Mọi phần tử "hiện ra" đều có trạng thái nghỉ là trạng thái cuối, nên tắt chuyển động vẫn đủ nội dung. */
+    .sheet.show { height:100dvh; max-height:none; border-radius:0; overflow:hidden auto; transition:--c .3s; animation:take .5s var(--ease);
+      padding-top:calc(12px + env(safe-area-inset-top,0px));
+      background:radial-gradient(110% 50% at 50% 32%,color-mix(in srgb,var(--c) 34%,transparent),transparent 70%),
+        radial-gradient(60% 40% at 0 100%,#2a1f60aa,transparent 70%), #04060f; }
+    .sheet.show::before { display:none; }
+    @keyframes take { from { opacity:0; } }
+    #fx { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+    #result:not([hidden]) { position:relative; display:flex; flex-direction:column; height:100%; overflow:clip; text-align:center; }
+    #result > :not(.flash,.intro,.ghostname) { position:relative; z-index:1; }
+    .dots { display:flex; justify-content:center; gap:10px; margin:6px 4px 0; }
+    .dots i { width:7px; height:7px; rotate:45deg; background:#ffffff26; transition:scale .25s, background .2s, box-shadow .2s; }
+    .dots i.on { background:var(--dc); box-shadow:0 0 8px var(--dc); }
+    .dots i.at { scale:1.6; }
+    /* Tên bài + mức tạ, hiện đầu tiên */
+    .intro { position:absolute; inset:0; z-index:3; display:grid; place-content:center; gap:8px; padding:0 8px; opacity:0; pointer-events:none; }
+    .intro span { font:600 18px/1 var(--serif); letter-spacing:.3em; text-transform:uppercase; color:var(--gold); }
+    .intro b { font:700 min(17vw,92px)/.95 var(--serif); letter-spacing:.04em; text-wrap:balance; }
+    /* Tên rank mờ khổng lồ phía sau mỗi nấc leo */
+    .ghostname { position:absolute; z-index:0; left:-20%; right:-20%; top:28%; margin:0; opacity:0; pointer-events:none;
+      font:700 min(30vw,170px)/.85 var(--serif); letter-spacing:.06em; text-transform:uppercase; color:transparent; -webkit-text-stroke:1px color-mix(in srgb,var(--c),#fff 40%); }
+    /* Chớp sáng sao 4 cánh phủ màn hình */
+    .flash { position:absolute; z-index:4; left:50%; top:36%; width:150vmax; aspect-ratio:1; translate:-50% -50%; opacity:0; pointer-events:none; mix-blend-mode:plus-lighter;
+      background:radial-gradient(circle,#fff 0 3%,color-mix(in srgb,var(--c),#fff 40%) 8%,transparent 28%),
+        linear-gradient(90deg,transparent 10%,#fff 50%,transparent 90%) center / 100% 3px no-repeat, linear-gradient(0deg,transparent 10%,#fff 50%,transparent 90%) center / 3px 100% no-repeat; }
+    .stage { position:relative; flex:1 0 auto; display:grid; place-items:center; perspective:700px; }
+    .stage .rays { position:absolute; left:50%; top:50%; width:620px; aspect-ratio:1; translate:-50% -50%; opacity:0; scale:.35; pointer-events:none;
+      transition:opacity .6s .3s, scale 1s .3s var(--ease); animation:spin 60s linear infinite;
+      background:repeating-conic-gradient(color-mix(in srgb,var(--c) 40%,transparent) 0 4deg,transparent 4deg 15deg);
+      -webkit-mask:radial-gradient(closest-side,#000 8%,transparent 70%); mask:radial-gradient(closest-side,#000 8%,transparent 70%); }
+    /* Sóng xung kích hình elip, như vòng quỹ đạo của huy hiệu */
+    .ring { position:absolute; left:50%; top:52%; width:200px; aspect-ratio:2.8; translate:-50% -50%; border-radius:50%; pointer-events:none; opacity:0;
+      border:2px solid color-mix(in srgb,var(--c),#fff 50%); box-shadow:0 0 16px var(--c), inset 0 0 16px var(--c); }
+    .pillars { position:absolute; inset:-30% 10% 20%; display:flex; justify-content:space-around; opacity:0; pointer-events:none; }
+    .pillars i { width:7%; background:linear-gradient(0deg,transparent,color-mix(in srgb,var(--c),#fff 50%) 40%,transparent); filter:blur(4px); }
+    .pillars i:nth-child(odd) { margin-top:12%; }
+    .medal { position:relative; }
+    /* Huy hiệu to hết mức mà nút Xong vẫn nằm trong màn hình: 440px là phần chữ, số và nút bên dưới. */
+    .medal .emb { --w:clamp(200px,(100dvh - 440px) * 1.7,min(400px,90vw)); }
+    .stamp { align-self:center; margin:0 0 6px; padding:6px 16px 5px; border-radius:99px; opacity:0; border:1px solid var(--line2);
+      font:700 14px/1 var(--serif); letter-spacing:.24em; text-transform:uppercase; color:var(--gold); background:#e9c98a14; box-shadow:0 0 18px #e9c98a33; }
+    #result .tier-name { font-size:min(52px,7dvh,calc(115vw / var(--n,8))); min-height:1.15em; white-space:nowrap; }
+    #result .tier-name > span { background:none; }
+    #result .tier-name b { display:inline-block; white-space:pre; font:inherit; }
+    #result .bar { width:100%; max-width:300px; margin-inline:auto; }
+    #result .bar i { transition:width 1s .6s var(--ease); }
+    .stats { display:flex; justify-content:center; gap:22px; margin:10px 0 0; }
+    .stats b { display:block; font:700 min(30px,4.6dvh)/1.1 var(--serif); font-variant-numeric:lining-nums tabular-nums; white-space:nowrap; }
+    .stats small { font-size:12px; }
+    /* Màn hình thấp: chỉ danh sách tin co lại và tự cuộn, nút Xong luôn nằm trong màn hình. */
+    .after { opacity:0; display:flex; flex-direction:column; min-height:0; }
+    .after > * { flex:none; }
+    .after .news { flex:0 1 auto; min-height:0; overflow:auto; }
+    .news { margin:8px 0 0; text-align:left; }
+    .news li { padding:4px 0; font-size:13.5px; border-color:#ffffff10; }
+    .news .emb { --w:40px; width:40px; }
+    .news .mark { flex:none; width:40px; text-align:center; font-size:16px; color:var(--gold); }
+    .actions { display:flex; gap:10px; margin-top:10px; }
+    .actions .ghost-btn { flex:1; margin:0; letter-spacing:.06em; white-space:nowrap; }
+    .actions .primary { flex:2; margin:0; }
+    .landed .rays { opacity:.8; scale:1; }
+    .landed .medal { animation:float 5s 1.4s ease-in-out infinite; }
+    .landed .stamp { opacity:1; animation:stamp .6s 1.1s var(--ease) backwards; }
+    .landed .tier-name b { animation:letter .7s calc(.75s + var(--k) * 55ms) var(--ease) backwards; }
+    .landed .tier-name::before, .landed .tier-name::after { animation:line .8s 1s var(--ease) backwards; }
+    .landed .tier-name::before { transform-origin:right; }
+    .landed .tier-name::after { transform-origin:left; }
+    .landed .star { animation:letter .6s 1.3s var(--ease) backwards; }
+    .landed .after { opacity:1; transition:opacity .5s 1.1s; }
+    .landed .stats > div { animation:rise .6s calc(1.2s + var(--i) * .13s) var(--ease) backwards; }
+    .landed .news li { animation:rise .5s calc(1.6s + var(--i) * .1s) backwards; }
+    @keyframes float { 50% { transform:translateY(-6px); } }
+    @keyframes stamp { from { opacity:0; transform:scale(1.6); filter:blur(6px); } }
+    @keyframes letter { from { opacity:0; transform:translateY(.4em) scale(1.3); filter:blur(8px) brightness(3); } }
+    @keyframes line { from { transform:scaleX(0); opacity:0; } }
+    @media (prefers-reduced-motion:reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
+
+    footer { margin-top:18px; text-align:center; }
+
+    /* Trang chính dịu mắt: cùng huy hiệu và chuyển động, nhưng ánh sáng yếu hơn, ít đốm hơn. Màn hình kết quả (#result) không bị ảnh hưởng. */
+    main .trophy .emb:not(.none) { filter:brightness(.85); }
+    main .gr, main .t7 .gr, main .t8 .gr { opacity:.18; -webkit-mask:radial-gradient(closest-side,#000 5%,transparent 55%); mask:radial-gradient(closest-side,#000 5%,transparent 55%); }
+    main .flare, main .t4 .flare, main .t6 .flare, main .t7 .flare { filter:opacity(.45); animation-duration:5s; }
+    main .tw:nth-child(odd), main .du:nth-child(odd) { display:none; }
+    main .tw, main .du { filter:opacity(.6); }
+    main .pl { filter:blur(3px) opacity(.5); }
+    main .emb.big::before { opacity:.4; animation:none; }
+    main .tier-name > span { background:linear-gradient(180deg,color-mix(in srgb,var(--c),#fff 45%) 10%,color-mix(in srgb,var(--c),#fff 15%) 60%,color-mix(in srgb,var(--c),#000 20%));
+      -webkit-background-clip:text; background-clip:text; filter:drop-shadow(0 0 6px color-mix(in srgb,var(--c) 35%,transparent)); }
+    main .bar i { box-shadow:0 0 5px color-mix(in srgb,var(--c) 60%,transparent); }
+    main .emb:not(.big) .shine { display:none; }
+    main .emb:not(.big)::before { animation:none; opacity:.35; }
+    main .primary { white-space:nowrap; text-overflow:ellipsis; font-size:min(19px,4.2vw); letter-spacing:min(.14em,.8vw); background:linear-gradient(180deg,#e6cf9c,#c9a466 50%,#9c763d); box-shadow:inset 0 1px 0 #fff5, inset 0 -2px 0 #0003, 0 6px 18px #0006; }
+    main .primary::after { opacity:.45; animation-duration:9s; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>IRON <b>ASCEND</b></h1>
+    <button id="me" type="button" aria-label="Sửa giới tính và cân nặng"></button>
+  </header>
+
+  <section id="overall" class="hero" aria-live="polite" style="--i:1"></section>
+
+  <div id="groups" class="groups" role="radiogroup" aria-label="Nhóm cơ" style="--i:2"></div>
+
+  <section class="panel" style="--i:3">
+    <h3 id="listTitle"></h3>
+    <ul id="list"></ul>
+  </section>
+
+  <div class="cta" style="--i:4"><button id="open" class="primary" type="button"></button></div>
+
+  <footer><small>Ngưỡng xếp hạng và hệ số giữa các bài là ước tính tham khảo, không phải chuẩn chính thức. 1RM tính theo công thức Epley.</small></footer>
+</main>
+
+<dialog id="profile">
+  <form method="dialog">
+    <h2>Thông tin của bạn</h2>
+    <small>Dùng để tính sức mạnh so với cân nặng.</small>
+    <fieldset>
+      <label><input type="radio" name="sex" value="m" checked />Nam</label>
+      <label><input type="radio" name="sex" value="f" />Nữ</label>
+    </fieldset>
+    <label>Cân nặng (kg)<input id="bw" type="number" inputmode="decimal" min="30" max="250" step="0.1" required /></label>
+    <button class="primary">Xong</button>
+  </form>
+</dialog>
+
+<dialog id="tiers">
+  <form method="dialog">
+    <h2>Các bậc rank</h2>
+    <small id="tiersSub"></small>
+    <ul id="tiersList" class="tiers"></ul>
+    <button class="primary">Đóng</button>
+  </form>
+</dialog>
+
+<dialog id="detail">
+  <form method="dialog">
+    <div id="dBody"></div>
+    <button class="primary">Đóng</button>
+  </form>
+</dialog>
+
+<dialog id="log" class="sheet" aria-labelledby="logTitle">
+  <canvas id="fx" aria-hidden="true"></canvas>
+  <section data-step="1">
+    <div class="stephead"><h2 id="logTitle"></h2><small>1/2</small><button class="x" type="button" aria-label="Đóng">✕</button></div>
+    <label for="kg" id="kgLabel" class="cap">Tạ (kg)</label>
+    <div class="readout"><button type="button" data-for="kg" data-dir="-1" aria-label="Giảm tạ">−</button>
+      <input id="kg" type="number" inputmode="decimal" step="0.5" placeholder="0" />
+      <button type="button" data-for="kg" data-dir="1" aria-label="Tăng tạ">+</button></div>
+    <div class="ruler"><div class="track" id="kgRuler" role="slider" tabindex="0" aria-label="Thước số kg, kéo ngang hoặc dùng phím mũi tên"></div></div>
+    <small class="hint" id="kgHint"></small>
+    <button id="toReps" class="primary" type="button">Tiếp</button>
+  </section>
+  <section data-step="2" hidden>
+    <div class="stephead"><button id="back" class="link" type="button" aria-label="Quay lại sửa số kg">‹ <span id="kgEcho"></span></button><small>2/2</small><button class="x" type="button" aria-label="Đóng">✕</button></div>
+    <label for="reps" class="cap">Số rep</label>
+    <div class="readout"><button type="button" data-for="reps" data-dir="-1" aria-label="Giảm 1 rep">−</button>
+      <input id="reps" type="number" inputmode="numeric" min="1" max="30" step="1" placeholder="0" />
+      <button type="button" data-for="reps" data-dir="1" aria-label="Tăng 1 rep">+</button></div>
+    <div class="ruler"><div class="track" id="repsRuler" role="slider" tabindex="0" aria-label="Thước số rep, kéo ngang hoặc dùng phím mũi tên"></div></div>
+    <small class="hint">Từ 1 đến 30 rep. Trên 10 rep thì ước tính kém chính xác.</small>
+    <button id="reveal" class="primary" type="button">Xem rank</button>
+  </section>
+  <section data-step="3" id="result" hidden></section>
+  <p id="announce" class="sr" aria-live="polite"></p>
+</dialog>
+
+<script type="module">
+  import { TIERS, SUBS, TOP, GROUPS, EXERCISES, thresholds, rate, migrate, standing, label } from './rank.js';
+
+  const $ = id => document.getElementById(id);
+  const KEY = 'gymrank';
+  const state = { sex: 'm', bw: 0, log: [] };
+  try { Object.assign(state, JSON.parse(localStorage.getItem(KEY))); } catch {}
+  migrate(state);
+
+  // Trong Claude Artifact: lưu thêm vào kho riêng của tài khoản (data/users/<id>), mở máy khác vẫn còn.
+  // Ngoài Artifact (GitHub Pages) window.claude không có, app chỉ dùng localStorage.
+  // ponytail: cả lịch sử nằm trong một tài liệu (giới hạn 256 KiB, đủ vài nghìn lần ghi); vượt thì tách theo năm.
+  let remote = null, touched = false, writing = Promise.resolve();
+  const persist = () => {
+    touched = true;
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {}
+    if (remote) { const body = structuredClone(state); writing = writing.then(() => remote.set(body)).catch(() => {}); }
+  };
+  (async () => {
+    const [db, user] = await Promise.all([window.claude?.use('db'), window.claude?.use('user')]);
+    const uid = db && user && await user.id();
+    if (!uid) return;
+    const ref = db.doc(`data/users/${uid}/gymrank`);
+    try {
+      const snap = await ref.get();
+      remote = ref;
+      if (snap.exists && !touched) {
+        Object.assign(state, structuredClone(snap.data()));
+        migrate(state);
+        try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {}
+        if (!$('log').open) cur = lastId();
+        render();
+      } else if (touched || state.bw) persist();
+    } catch {}
+  })();
+
+  // confirm() không chạy trong Artifact, nên xác nhận bằng cách bấm lần thứ hai.
+  let armed = '', armedBtn = null, armedText = '';
+  const disarm = () => { if (armedBtn?.isConnected) armedBtn.textContent = armedText; armed = ''; armedBtn = null; };
+  const second = (key, btn, ask) => {
+    if (armed === key) { disarm(); return true; }
+    disarm();
+    [armed, armedBtn, armedText] = [key, btn, btn.textContent];
+    btn.textContent = ask;
+    return false;
+  };
+
+  // Huy hiệu: 9 ô của ảnh lưới ranks.webp (3×3, ô 520×280, nền trong suốt), cắt từ bộ huy hiệu pha lê bạn gửi.
+  // Huy hiệu lớn (cls 'big') tách ảnh thành cánh trái, cánh phải, lõi giữa (clip-path) để cánh "thở", rồi phủ các lớp ánh sáng:
+  // tia sáng tỏa, vòng quỹ đạo có sao chổi, chớp sáng ở lõi, đốm sao lấp lánh; bậc cao thêm vòng thứ hai, bụi sáng, tàn đỏ, cột sáng.
+  // Bậc phụ I/II/III: 1 đến 3 dấu ✦ dưới chân.
+  const mix = (hex, to, a) => '#' + [1, 3, 5].map(i => Math.round(parseInt(hex.slice(i, i + 2), 16) * (1 - a) + to * a).toString(16).padStart(2, '0')).join('');
+  const P = (n, f) => [...Array(n)].map((_, i) => f(i)).join('');
+  // Vị trí cố định cho đốm sao, bụi, cột sáng (giống nhau mỗi lần vẽ).
+  const TW = [[18, 30], [82, 26], [30, 78], [74, 74], [8, 56], [92, 54], [50, 8], [62, 92], [40, 20], [60, 34]];
+  const orb = (cls = '') => `<svg class="orb ${cls}" viewBox="0 0 130 70" preserveAspectRatio="none"><ellipse cx="65" cy="38" rx="57" ry="10" pathLength="100"/></svg>`;
+  function extras(t) {
+    let s = `<i class="gr"></i>${orb()}${t >= 5 ? orb('o2') : ''}<i class="flare"></i>`;
+    s += P(t >= 3 ? 10 : 5, i => `<i class="tw" style="left:${TW[i][0]}%;top:${TW[i][1]}%;animation-delay:${(i * .53) % 2.6}s"></i>`);
+    if (t >= 4) s += P(t === 8 ? 12 : 7, i => `<i class="du" style="left:${12 + (i * 37) % 76}%;animation-delay:${(i * .61) % 3.4}s;${t === 6 ? '--dc:#ff8a5c' : ''}"></i>`);
+    if (t >= 7) s += P(6, i => `<i class="pl" style="left:${14 + i * 14}%;animation-delay:${i * .37}s"></i>`);
+    return s;
+  }
+  const emblem = (t, sub, cls = '') => {
+    const big = cls.includes('big');
+    return `<span class="emb t${t} ${cls}" style="--t:${t};--x:${t % 3};--y:${Math.floor(t / 3)};--c:${TIERS[t].color}" aria-hidden="true">${big
+      ? `<i class="img wl"></i><i class="img wr"></i><i class="img core"></i><i class="shine"></i>${extras(t)}` : '<i class="img"></i><i class="shine"></i>'}${
+      sub == null || t >= TOP ? '' : `<b class="subs">${'✦'.repeat(sub + 1)}</b>`}</span>`;
+  };
+  // Ô trống: bài hoặc nhóm cơ chưa ghi (huy hiệu Đồng xám mờ).
+  const SLOT = emblem(0, null, 'none');
+  // ---- Trạng thái giao diện: bài đang chọn (nhóm cơ đang chọn = nhóm của bài đó) và kết quả xếp hạng hiện tại ----
+  const lastId = () => state.log.findLast(e => EXERCISES[e.id])?.id ?? 'bench';
+  let cur = lastId(), st = standing(state);
+  const group = () => EXERCISES[cur].group;
+  const inGroup = g => Object.keys(EXERCISES).filter(id => EXERCISES[id].group === g);
+  const short = id => EXERCISES[id].name.split(' (')[0];
+
+  const fmt = n => (Math.round(n * 10) / 10).toLocaleString('vi-VN');
+  const day = (t, year) => new Date(t).toLocaleDateString('vi-VN', { day: 'numeric', month: 'numeric', ...(year && { year: '2-digit' }) });
+  const bar = (p, seg) => `<div class="bar${seg ? ' seg' : ''}"><i style="width:${p * 100}%"></i></div>`;
+  const load = (id, kg) => EXERCISES[id].each ? `${fmt(kg)} kg mỗi tay`
+    : !EXERCISES[id].bw ? `${fmt(kg)} kg` : kg ? `Cân nặng ${kg > 0 ? '+' : '−'} ${fmt(Math.abs(kg))} kg` : 'Cân nặng';
+  const next = (r, reps) => r.next ? `Thêm ${fmt(r.next.kg)} kg × ${reps} rep để lên ${label(r.next.tier, r.next.sub)}` : 'Đã ở hạng cao nhất';
+  const level = r => (r ? r.tier * SUBS.length + r.sub : -1);
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  const enter = (els, from) => reduce.matches || [...els].forEach((el, i) => el.animate([{ opacity: 0, transform: from }, { opacity: 1, transform: 'none' }],
+    { duration: 340, delay: i * 45, easing: 'cubic-bezier(.2,.9,.3,1)', fill: 'backwards' }));
+
+  function render() {
+    st = standing(state);
+    const focus = document.activeElement?.name;
+    $('me').textContent = state.bw ? `${state.sex === 'f' ? 'Nữ' : 'Nam'}, ${fmt(state.bw)} kg` : 'Nhập cân nặng';
+
+    const o = st.overall, t = o ? o.tier : 0, hero = $('overall'), name = o ? TIERS[t].name : '';
+    document.documentElement.style.setProperty('--c', o ? TIERS[t].color : '#5a6488');
+    hero.classList.toggle('none', !o);
+    hero.innerHTML = `<div class="trophy"><div class="tilt">${o ? emblem(t, o.sub, 'big') : SLOT.replace('class="emb', 'class="emb big')}</div></div>
+      <h2 class="tier-name" style="--n:${(o ? label(t, o.sub) : 'Chưa có hạng').length}"><span>${o ? label(t, o.sub) : 'Chưa có hạng'}</span></h2><i class="star" aria-hidden="true">✦</i>
+      ${o ? `<div class="prog"><small><span>${t < TOP ? `Tiến độ lên ${TIERS[t + 1].name}` : 'Hạng cao nhất'}</span><b>${Math.round(o.progress * 100)}%</b></small>
+          ${bar(o.progress, t < TOP)}<small>Hạng tổng của ${Object.keys(st.byGroup).length}/${Object.keys(GROUPS).length} nhóm cơ</small></div>`
+        : `<p class="sub">${state.bw ? 'Ghi mức tạ đầu tiên để nhận hạng' : 'Nhập cân nặng để bắt đầu xếp hạng'}</p>`}
+      <button class="ladder" type="button" aria-label="Xem yêu cầu từng rank">${TIERS.map((_, i) => emblem(i, null, !o ? '' : i < t ? 'done' : i === t ? 'now' : '')).join('')}›</button>`;
+
+    $('groups').innerHTML = Object.entries(GROUPS).map(([g, name]) => {
+      const r = st.byGroup[g];
+      return `<label style="--c:${r ? TIERS[r.tier].color : '#5a6488'}">
+        <input type="radio" name="group" value="${g}"${g === group() ? ' checked' : ''} aria-label="${name}: ${r ? label(r.tier, r.sub) : 'chưa ghi'}" />
+        ${r ? emblem(r.tier, r.sub) : SLOT}${name}</label>`;
+    }).join('');
+
+    $('open').textContent = state.bw ? `Ghi mức tạ: ${short(cur)}` : 'Nhập cân nặng';
+    $('listTitle').textContent = `Bài tập nhóm ${GROUPS[group()]}`;
+    $('list').innerHTML = inGroup(group()).map(id => {
+      const ex = EXERCISES[id], r = st.byEx[id];
+      const more = `<button class="more" type="button" data-detail="${id}" aria-label="Lịch sử và yêu cầu rank của ${ex.name}">›</button>`;
+      if (!r) return `<li class="empty" data-id="${id}">${SLOT}
+        <div class="grow"><b class="n">${short(id)}</b><small>Chưa ghi. Chạm để ghi.</small></div>${more}</li>`;
+      return `<li data-id="${id}" style="--c:${TIERS[r.tier].color}">${emblem(r.tier, r.sub)}
+        <div class="grow"><b class="n">${short(id)}</b><span class="tier">${label(r.tier, r.sub)}</span>
+        ${bar(r.progress, r.tier < TOP)}<small>${load(id, r.entry.kg)} × ${r.entry.reps} rep</small></div>
+        <div class="orm"><b>${fmt(r.oneRm)}</b><small>KG 1RM</small></div>${more}</li>`;
+    }).join('');
+
+    // Dựng lại nút chọn thì mất focus bàn phím; trả focus về nút đang chọn.
+    if (focus === 'group') document.querySelector('input[name="group"]:checked')?.focus({ preventScroll: true });
+  }
+
+  // ---- Chọn bài trên trang chính: chạm một dòng là ghi bài đó; nút dính đáy ghi bài đang chọn (bài vừa ghi gần nhất hoặc bài tốt nhất của nhóm) ----
+  const select = id => { cur = id; render(); };
+  // Đổi nhóm cơ: danh sách cũ trượt ra, danh sách mới trượt vào từng dòng.
+  $('groups').addEventListener('input', e => {
+    const id = st.byGroup[e.target.value]?.entry.id ?? inGroup(e.target.value)[0];
+    if (reduce.matches) return select(id);
+    select(id);
+    enter($('list').children, 'translateX(32px)');
+  });
+  $('open').onclick = () => openLog(cur);
+  $('list').onclick = e => {
+    const more = e.target.closest('[data-detail]');
+    if (more) return openDetail(more.dataset.detail);
+    const li = e.target.closest('[data-id]');
+    if (li) openLog(li.dataset.id);
+  };
+
+  // ---- Bảng nhập 3 bước: kg → rep → rank. Bấm "Xem rank" là lưu luôn; "Hoàn tác" xóa đúng lần vừa lưu. ----
+  const kgOk = () => { const kg = parseFloat($('kg').value); return Number.isFinite(kg) && (EXERCISES[cur].bw ? state.bw + kg > 0 : kg > 0); };
+  const repsOk = () => { const n = Number($('reps').value); return Number.isInteger(n) && n >= 1 && n <= 30; };
+  const check = () => { $('toReps').disabled = !kgOk(); $('reveal').disabled = !repsOk(); };
+
+  // Thước trượt: dải vạch cuộn ngang, kim cố định ở giữa. Ô số (#kg, #reps) vẫn là nguồn giá trị; thước chỉ đọc và ghi vào ô.
+  // Quán tính và dừng đúng vạch do trình duyệt lo (scroll-snap). quiet: bỏ qua sự kiện cuộn do chính code gây ra.
+  const spec = id => {
+    const ex = EXERCISES[cur];
+    if (id === 'reps') return { min: 1, max: 30, step: 1, w: 38, long: 5, mid: 1, lab: 1 };
+    if (ex.each) return { min: 0, max: 80, step: 1, w: 14, long: 10, mid: 5, lab: 10 };
+    if (ex.bw) return { min: -Math.floor(state.bw * .7 / 10) * 10, max: 100, step: 2.5, w: 12, long: 10, mid: 5, lab: 10 };
+    return { min: 0, max: Math.max(100, Math.ceil(thresholds(cur, state.sex)[TOP - 1] * state.bw * 1.4 / 50) * 50), step: 2.5, w: 12, long: 10, mid: 5, lab: 10 };
+  };
+  let quiet = 0;
+  const on = (x, k) => Math.abs(x / k - Math.round(x / k)) < 1e-9;
+  function build(id) {
+    const s = spec(id), v = parseFloat($(id).value), tr = $(id + 'Ruler');
+    if (v > s.max) s.max = Math.ceil(v / s.long) * s.long;   // gõ số vượt thước thì nới thước
+    if (v < s.min) s.min = Math.floor(v / s.long) * s.long;
+    tr.spec = s;
+    tr.style.setProperty('--w', s.w + 'px');
+    tr.innerHTML = P(Math.round((s.max - s.min) / s.step) + 1, i => { const x = +(s.min + i * s.step).toFixed(2);
+      return `<i class="${on(x, s.long) ? 'L' : on(x, s.mid) ? 'm' : ''}"${on(x, s.lab) ? ` data-l="${fmt(x)}"` : ''}></i>`; });
+    tr.setAttribute('aria-valuemin', s.min);
+    tr.setAttribute('aria-valuemax', s.max);
+  }
+  const aria = (id, v) => { const tr = $(id + 'Ruler'); tr.setAttribute('aria-valuenow', v); tr.setAttribute('aria-valuetext', id === 'reps' ? `${v} rep` : load(cur, v)); };
+  function sync(id, smooth) {
+    const tr = $(id + 'Ruler'), v = parseFloat($(id).value);
+    if (!tr.spec || v > tr.spec.max || v < tr.spec.min) build(id);
+    const s = tr.spec, val = Number.isFinite(v) ? v : s.min;
+    quiet = performance.now() + (smooth ? 500 : 120);
+    tr.scrollTo({ left: Math.round((val - s.min) / s.step) * s.w, behavior: smooth && !reduce.matches ? 'smooth' : 'auto' });
+    aria(id, val);
+  }
+  const roll = el => reduce.matches || el.animate([{ transform: 'translateY(12%)', opacity: .5 }, { transform: 'none', opacity: 1 }], { duration: 140, easing: 'ease-out' });
+  // − / + và phím mũi tên: nhảy tới vạch kế tiếp (đang ở số lẻ như 62,3 thì về vạch gần nhất theo hướng bấm).
+  function nudge(id, dir) {
+    const el = $(id), s = $(id + 'Ruler').spec, k = ((parseFloat(el.value) || 0) - s.min) / s.step;
+    let x = +(s.min + (dir > 0 ? Math.floor(k + 1e-9) + 1 : Math.ceil(k - 1e-9) - 1) * s.step).toFixed(2);
+    x = id === 'reps' ? Math.min(30, Math.max(1, x)) : EXERCISES[cur].bw ? x : Math.max(0, x);
+    el.value = x;
+    check();
+    roll(el);
+    sync(id, true);
+  }
+  for (const id of ['kg', 'reps']) {
+    const tr = $(id + 'Ruler'), el = $(id);
+    tr.addEventListener('scroll', () => {
+      if (performance.now() < quiet) return;
+      const v = +(tr.spec.min + Math.round(tr.scrollLeft / tr.spec.w) * tr.spec.step).toFixed(2);
+      if (parseFloat(el.value) === v) return;
+      el.value = v;
+      check();
+      roll(el);
+      aria(id, v);
+    }, { passive: true });
+    for (const ev of ['pointerdown', 'touchstart', 'wheel']) tr.addEventListener(ev, () => { quiet = 0; }, { passive: true });
+    tr.onkeydown = e => {
+      const dir = { ArrowLeft: -1, ArrowDown: -1, ArrowRight: 1, ArrowUp: 1 }[e.key];
+      if (dir) { e.preventDefault(); nudge(id, dir); }
+    };
+    el.oninput = () => { check(); sync(id, false); };
+  }
+
+  let shown = 1;
+  function step(n) {
+    for (const s of $('log').querySelectorAll('[data-step]')) s.hidden = Number(s.dataset.step) !== n;
+    $('log').classList.remove('typing');
+    $('log').classList.toggle('show', n === 3);
+    if (n < 3) { calm(); sync(n === 1 ? 'kg' : 'reps', false); }
+    if (n === 2) $('kgEcho').textContent = load(cur, parseFloat($('kg').value));
+    // Bước 1 ↔ 2 trượt ngang theo hướng đi.
+    if (n < 3 && shown < 3 && n !== shown) enter([$('log').querySelector(`[data-step="${n}"]`)], `translateX(${n > shown ? 48 : -48}px)`);
+    shown = n;
+    check();
+    // Không focus ô số để bàn phím không tự bật; nút chính chưa bấm được thì focus thước.
+    const main = n === 1 ? $('toReps') : n === 2 ? $('reveal') : null;
+    (main?.disabled ? $(n === 1 ? 'kgRuler' : 'repsRuler') : main)?.focus({ preventScroll: true });
+  }
+  function openLog(id) {
+    if (!state.bw) return openProfile();
+    if (id !== cur) select(id);
+    const ex = EXERCISES[cur], e = st.byEx[cur]?.entry;
+    $('logTitle').textContent = short(cur);
+    $('kgLabel').textContent = ex.bw ? 'Tạ đeo thêm (kg)' : ex.each ? 'Tạ mỗi tay (kg)' : 'Tạ (kg)';
+    $('kgHint').textContent = ex.bw ? 'Không đeo tạ thì để 0. Dùng máy hỗ trợ thì kéo về số âm.' : ex.each ? 'Số kg của một tay. Chạm vào số để gõ số lẻ.' : 'Kéo thước hoặc chạm vào số để gõ số lẻ.';
+    // Đứng sẵn ở kỷ lục của bài để chỉnh từ đấy; chưa có thì đứng ở mức khởi đầu phổ biến (đòn trống 20 kg, tạ đơn 10 kg, 5 rep).
+    $('kg').value = e ? e.kg : ex.bw ? 0 : ex.each ? 10 : 20;
+    $('reps').value = e ? e.reps : 5;
+    build('kg');
+    build('reps');
+    $('log').style.removeProperty('--c');
+    shown = 1;
+    $('log').showModal();
+    step(1);
+  }
+  const touch = matchMedia('(pointer: coarse)');
+  $('kg').onfocus = $('reps').onfocus = () => $('log').classList.toggle('typing', touch.matches);
+  $('log').onkeydown = e => {
+    if (e.key !== 'Enter' || !e.target.matches('input, .track')) return;
+    e.preventDefault();
+    (e.target.closest('[data-step]').dataset.step === '1' ? $('toReps') : $('reveal')).click();
+  };
+
+  let saved = null, timer = 0, finish = null;
+  $('log').onclick = e => {
+    const b = e.target.closest('button');
+    if (!b) return finish?.();   // chạm vào màn hình khi đang leo bậc: nhảy thẳng tới kết quả
+    if (b.dataset.for) nudge(b.dataset.for, Number(b.dataset.dir));
+    else if (b.id === 'toReps') step(2);
+    else if (b.id === 'back') step(1);
+    else if (b.id === 'reveal') reveal();
+    else if (b.id === 'undo') undo();
+    else if (b.id === 'done' || b.classList.contains('x')) $('log').close();
+  };
+  $('log').addEventListener('close', () => { clearTimeout(timer); calm(); finish = saved = null; render(); });
+
+  function reveal() {
+    if (!kgOk() || !repsOk()) return;
+    const id = cur, ex = EXERCISES[id], g = ex.group, kg = parseFloat($('kg').value), reps = Number($('reps').value);
+    const before = st, old = before.byEx[id];
+    saved = { id, kg, reps, t: Date.now() };
+    state.log.push(saved);
+    persist();
+    // Trang phía sau chỉ vẽ lại khi huy hiệu đáp xuống (trong climb), để rank tổng không lộ trước.
+    const now = standing(state), r = rate(id, state.sex, state.bw, kg, reps);
+    const o = now.overall, ob = before.overall, ga = now.byGroup[g], gb = before.byGroup[g];
+    // Tin kèm theo: so bảng xếp hạng trước và sau khi lưu.
+    const news = [
+      !old ? ['★', 'Kỷ lục đầu tiên của bài này']
+        : r.oneRm > old.oneRm ? ['★', `Kỷ lục mới, 1RM ước tính tăng ${fmt(r.oneRm - old.oneRm)} kg`]
+        : ['•', `Chưa vượt kỷ lục ${load(id, old.entry.kg)} × ${old.entry.reps} rep`],
+      level(ga) > level(gb) && [emblem(ga.tier, ga.sub), `Nhóm ${GROUPS[g]} ${gb ? 'lên' : 'có rank đầu tiên:'} ${label(ga.tier, ga.sub)}`],
+      !ob ? [emblem(o.tier, o.sub), `Hạng tổng đầu tiên: ${label(o.tier, o.sub)}`]
+        : level(o) > level(ob) ? [emblem(o.tier, o.sub), `Hạng tổng lên ${label(o.tier, o.sub)}`]
+        : level(o) < level(ob) && [emblem(o.tier, o.sub), `Hạng tổng xuống ${label(o.tier, o.sub)} vì nhóm ${GROUPS[g]} mới ghi còn thấp`],
+    ].filter(Boolean);
+    const stamp = !old ? 'Rank đầu tiên' : level(r) > level(old) ? 'Lên bậc' : r.oneRm > old.oneRm ? 'Kỷ lục mới' : '';
+    const stats = [[`<span id="orm">${fmt(r.oneRm)}</span> kg`, '1RM ước tính'],
+      [`${r.ratio.toLocaleString('vi-VN', { maximumFractionDigits: 2 })}×`, 'cân nặng'],
+      r.next && [`+${fmt(r.next.kg)} kg`, `× ${reps} rep để lên ${label(r.next.tier, r.next.sub)}`]].filter(Boolean);
+    $('result').innerHTML = `<p class="ghostname" aria-hidden="true"></p><i class="flash" aria-hidden="true"></i>
+      <div class="intro" aria-hidden="true"><span>${short(id)}</span><b>${load(id, kg)}</b><span>× ${reps} rep</span></div>
+      <div class="dots" aria-hidden="true">${TIERS.map(t => `<i style="--dc:${t.color}"></i>`).join('')}</div>
+      <div class="stage" aria-hidden="true"><i class="rays"></i><div class="pillars">${P(7, () => '<i></i>')}</div><i class="ring"></i><i class="ring"></i><div class="medal"></div></div>
+      ${stamp ? `<p class="stamp" aria-hidden="true">${stamp}</p>` : ''}
+      <h2 class="tier-name" aria-hidden="true"></h2><i class="star" aria-hidden="true"></i>
+      <div class="after">
+        <p class="sub">${short(id)}, ${load(id, kg)} × ${reps} rep</p>
+        <div class="bar${r.tier < TOP ? ' seg' : ''}"><i style="width:0"></i></div>
+        <div class="stats">${stats.map(([v, k], i) => `<div style="--i:${i}"><b>${v}</b><small>${k}</small></div>`).join('')}</div>
+        ${r.next ? '' : '<small>Đã ở hạng cao nhất.</small>'}
+        ${ex.machine ? '<small>Máy mỗi phòng tập nặng nhẹ khác nhau, rank bài này chỉ để tham khảo.</small>' : ''}
+        <ul class="news">${news.map(([mark, text], i) => `<li style="--i:${i}">${mark.startsWith('<') ? mark : `<span class="mark">${mark}</span>`}<span class="grow">${text}</span></li>`).join('')}</ul>
+        <div class="actions"><button id="undo" class="ghost-btn" type="button" aria-label="Hoàn tác lần ghi này">Hoàn tác</button>
+          <button id="done" class="primary" type="button">Xong</button></div>
+      </div>`;
+    step(3);
+    fx.width = fx.clientWidth * devicePixelRatio;
+    fx.height = fx.clientHeight * devicePixelRatio;
+    climb(r, old ? old.oneRm : 0, `${short(id)}, ${load(id, kg)} × ${reps} rep: ${label(r.tier, r.sub)}. ${news.map(n => n[1]).join('. ')}. ${next(r, reps)}.`);
+  }
+
+  // ---- Hiệu ứng hạt trên một canvas phủ cả bảng ----
+  // Ba loại hạt: vệt sáng có quán tính (tia, sao bay tới), chấm (mảnh pha lê, bụi, tàn), và hạt có đích (bay về một điểm theo thời gian:
+  // ghép huy hiệu, hút về tâm). Hạt ghép huy hiệu lấy vị trí và màu từ chính ảnh huy hiệu (đọc điểm ảnh của ô trong ranks.webp).
+  // ponytail: canvas 2D, khoảng 2.500 hạt là trần; máy chậm thì tự bỏ bớt một nửa hạt có đích. Cần nhiều hơn thì chuyển WebGL.
+  const fx = $('fx'), pen = fx.getContext('2d');
+  let parts = [], raf = 0, last = 0, ember = '', rain = '';
+  const calm = () => { ember = rain = ''; parts = []; };
+  const go = () => { raf ||= requestAnimationFrame(draw); };
+  // Khung huy hiệu trên canvas, đo theo bố cục (không theo transform đang chạy): huy hiệu luôn nằm giữa .stage.
+  const medalBox = () => {
+    const b = fx.getBoundingClientRect(), s = $('result').querySelector('.stage').getBoundingClientRect();
+    const w = $('result').querySelector('.medal .emb')?.offsetWidth || 240, h = w * 7 / 13;
+    return { x: s.left + s.width / 2 - b.left - w / 2, y: s.top + s.height / 2 - b.top - h / 2, w, h };
+  };
+  const center = () => { const m = medalBox(); return [m.x + m.w / 2, m.y + m.h * .52]; };
+  const SPR = new Image();
+  SPR.src = getComputedStyle(document.documentElement).getPropertyValue('--spr').trim().replace(/^url\(["']?|["']?\)$/g, '');
+  const shapes = [];
+  function shape(t) {
+    if (shapes[t] || !SPR.naturalWidth) return shapes[t] || [];
+    const W = 104, H = 56, c = document.createElement('canvas'), out = [];
+    c.width = W; c.height = H;
+    const g = c.getContext('2d', { willReadFrequently: true }), cw = SPR.naturalWidth / 3, ch = SPR.naturalHeight / 3;
+    g.drawImage(SPR, (t % 3) * cw, Math.floor(t / 3) * ch, cw, ch, 0, 0, W, H);
+    try {
+      const d = g.getImageData(0, 0, W, H).data;
+      for (let i = 0; i < W * H; i++) if (d[i * 4 + 3] > 80) out.push({ u: (i % W + .5) / W, v: (Math.floor(i / W) + .5) / H, color: `rgb(${d[i * 4]},${d[i * 4 + 1]},${d[i * 4 + 2]})` });
+    } catch {}   // ảnh khác nguồn thì không đọc được điểm ảnh: bỏ hiệu ứng hạt, phần còn lại vẫn chạy
+    return (shapes[t] = out);
+  }
+  // Ghép: hạt bay từ khắp màn hình về đúng chỗ và màu của chúng trên huy hiệu, rồi tắt dần khi ảnh thật hiện ra.
+  function assemble(t, dur) {
+    const m = medalBox(), now = performance.now(), R = Math.max(fx.clientWidth, fx.clientHeight);
+    for (const p of shape(t)) {
+      const a = Math.random() * Math.PI * 2, r = R * (.45 + Math.random() * .55);
+      parts.push({ from: [m.x + m.w / 2 + Math.cos(a) * r, m.y + m.h / 2 + Math.sin(a) * r], to: [m.x + p.u * m.w, m.y + p.v * m.h],
+        t0: now + Math.random() * 220, dur: dur * (.75 + Math.random() * .25), hold: 420, w: 2.2, color: p.color, life: 1 });
+    }
+    go();
+  }
+  // Vỡ: hạt của huy hiệu bắn ra ngoài như mảnh pha lê.
+  function shatter(t, power) {
+    const m = medalBox(), cx = m.x + m.w / 2, cy = m.y + m.h / 2, s = shape(t);
+    for (let i = 0; i < s.length; i += 3) {
+      const p = s[i], x = m.x + p.u * m.w, y = m.y + p.v * m.h, a = Math.atan2(y - cy, x - cx) + (Math.random() - .5) * .6, v = power * (.3 + Math.random());
+      parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, g: .06, life: 1, fade: .022 + Math.random() * .03, w: 1.4 + Math.random() * 2.6, color: p.color, dot: 1 });
+    }
+    go();
+  }
+  // Hút: vệt sáng từ khắp màn hình lao về tâm huy hiệu.
+  function implode(n, dur) {
+    const [x, y] = center(), now = performance.now(), W = fx.clientWidth, H = fx.clientHeight;
+    for (let i = 0; i < n; i++) parts.push({ from: [Math.random() * W, Math.random() * H], to: [x, y], t0: now, dur: dur * (.6 + Math.random() * .4), hold: 0, w: 1.4, color: '#fff', life: 1, streak: 1 });
+    go();
+  }
+  // Sao bay tới: vệt sáng từ tâm tỏa ra, nhanh dần.
+  function warp(n) {
+    const [x, y] = center();
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, d = 8 + Math.random() * 70;
+      parts.push({ x: x + Math.cos(a) * d, y: y + Math.sin(a) * d, vx: Math.cos(a) * 1.6, vy: Math.sin(a) * 1.6, acc: 1.13, g: 0, life: .9, fade: .022, w: .8 + Math.random() * 1.4, color: '#e6ecff' });
+    }
+    go();
+  }
+  // Tia và bụi lấp lánh bung ra từ tâm huy hiệu.
+  function sparks(n, colors, power) {
+    const [x, y] = center();
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, v = power * (.2 + Math.random());
+      parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v * .6 - 1, g: .05, life: 1, fade: .009 + Math.random() * .02, w: 1 + Math.random() * 2.2, color: colors[i % colors.length], dot: i % 2 });
+    }
+    go();
+  }
+  function draw(now) {
+    const d = devicePixelRatio, w = fx.clientWidth, h = fx.clientHeight, dt = now - (last || now);
+    last = now;
+    if (dt > 45 && parts.length > 900) parts = parts.filter((p, i) => !p.to || i % 2);
+    pen.setTransform(d, 0, 0, d, 0, 0);
+    pen.clearRect(0, 0, w, h);
+    pen.globalCompositeOperation = 'lighter';
+    pen.lineCap = 'round';
+    if (ember && Math.random() < .35) parts.push({ x: Math.random() * w, y: h + 4, vx: (Math.random() - .5) * .5, vy: -.7 - Math.random() * 1.5, g: 0, life: 1, fade: .004 + Math.random() * .006, w: 1.2 + Math.random() * 2, color: ember, dot: 1 });
+    if (rain && Math.random() < .5) parts.push({ x: Math.random() * w, y: -4, vx: (Math.random() - .5) * .3, vy: .7 + Math.random() * 1.6, g: 0, life: 1, fade: .003 + Math.random() * .004, w: 1 + Math.random() * 2, color: rain, dot: 1 });
+    parts = parts.filter(p => p.life > 0);
+    for (const p of parts) {
+      let px = p.x, py = p.y, a;
+      if (p.to) {
+        const k = Math.min(1, Math.max(0, (now - p.t0) / p.dur)), e = 1 - (1 - k) ** 3;
+        px = p.x ?? p.from[0]; py = p.y ?? p.from[1];
+        p.x = p.from[0] + (p.to[0] - p.from[0]) * e; p.y = p.from[1] + (p.to[1] - p.from[1]) * e;
+        if (k >= 1) p.life -= p.hold ? Math.max(dt, 16) / p.hold : 1;
+        a = Math.min(1, k * 4) * p.life;
+      } else {
+        if (p.acc) { p.vx *= p.acc; p.vy *= p.acc; } else p.vx *= .985;
+        p.x += p.vx; p.y += p.vy; p.vy += p.g; p.life -= p.fade;
+        px = p.x - p.vx * 1.6; py = p.y - p.vy * 1.6;
+        a = p.life;
+      }
+      pen.globalAlpha = Math.max(0, Math.min(1, a));
+      if (p.dot || (p.to && !p.streak)) { pen.fillStyle = p.color; pen.fillRect(p.x - p.w / 2, p.y - p.w / 2, p.w, p.w); }
+      else { pen.strokeStyle = p.color; pen.lineWidth = p.w; pen.beginPath(); pen.moveTo(px, py); pen.lineTo(p.x, p.y); pen.stroke(); }
+    }
+    raf = parts.length || ember || rain ? requestAnimationFrame(draw) : (last = 0);
+  }
+  const count = (el, from, to) => {
+    const t0 = performance.now();
+    (function f(now) {
+      const k = Math.min(1, (now - t0) / 1100);
+      el.textContent = fmt(from + (to - from) * (1 - (1 - k) ** 3));
+      if (k < 1 && el.isConnected) requestAnimationFrame(f);
+    })(t0);
+  };
+
+  // Lên bậc, khoảng 4 đến 5 giây, chạm để bỏ qua:
+  // 1. vũ trụ tối, tên bài và mức tạ; 2. leo từ Đồng: mỗi bậc lóe lên rồi vỡ thành mảnh pha lê nhường cho bậc kế, tên bậc mờ khổng lồ phía sau,
+  // sao bay tới, nhanh dần; 3. khựng: mọi thứ hút về một điểm sáng, màn hình tối lại; 4. điểm sáng nổ thành chớp sao 4 cánh, hạt sáng bay về
+  // ghép thành huy hiệu thật, cánh xòe ra, sóng elip, rung; hiệu ứng riêng của bậc (tàn đỏ, cột sáng, mưa vàng);
+  // 5. tên bậc hiện từng chữ, đường kẻ chạy ra hai bên, dấu, các con số. from = 1RM kỷ lục cũ, để số 1RM chạy từ mức cũ lên mức mới.
+  function climb(r, from, spoken) {
+    const log = $('log'), box = $('result'), q = s => box.querySelector(s);
+    const medal = q('.medal'), rings = box.querySelectorAll('.ring'), name = q('.tier-name'), star = q('.star'), dots = box.querySelectorAll('.dots i');
+    const flash = q('.flash'), intro = q('.intro'), ghost = q('.ghostname');
+    const show = (t, sub) => {
+      log.style.setProperty('--c', TIERS[t].color);
+      medal.innerHTML = emblem(t, sub, 'big');
+      const text = sub == null ? TIERS[t].name : label(t, sub);
+      name.innerHTML = `<span>${[...text].map((ch, k) => `<b style="--k:${k}">${ch}</b>`).join('')}</span>`;
+      name.style.setProperty('--n', Math.max(6, text.length));
+      star.textContent = '✦';
+      dots.forEach((d, i) => { d.classList.toggle('on', i <= t); d.classList.toggle('at', i === t); });
+    };
+    const wave = (el, s, ms) => el.animate([{ transform: 'scale(.4)', opacity: 1 }, { transform: `scale(${s})`, opacity: 0 }], { duration: ms, easing: 'cubic-bezier(.1,.7,.3,1)' });
+    const impact = () => {
+      const t = r.tier, c = TIERS[t].color;
+      log.animate([{ filter: 'brightness(1.9)' }, { filter: 'none' }], { duration: 650, easing: 'ease-out' });
+      const a = 3 + t * .7;
+      box.animate([[0, 0], [-a, a * .6], [a * .8, -a * .5], [-a * .4, a * .3], [0, 0]].map(([x, y]) => ({ transform: `translate(${x}px,${y}px)` })), { duration: 340 });
+      rings.forEach((g, i) => setTimeout(() => wave(g, 3.4 + i * 1.2, 1100 + i * 300), i * 140));
+      sparks(60 + t * 14, ['#ffffff', mix(c, 255, .5), c], 7 + t * .7);
+      if (t >= 7) q('.pillars').animate([{ opacity: 0, transform: 'scaleY(.2)' }, { opacity: 1, transform: 'none', offset: .3 }, { opacity: .55 }], { duration: 1600, easing: 'ease-out', fill: 'forwards' });
+      ember = t === 6 ? '#ff7a55' : mix(c, 255, .4);
+      if (t === TOP) rain = '#ffd98a';
+      count($('orm'), from, r.oneRm);
+    };
+    const land = () => {
+      clearTimeout(timer);
+      finish = null;
+      for (const el of [medal, name, intro, flash, ghost, log]) for (const a of el.getAnimations()) a.cancel();
+      parts = parts.filter(p => !p.to);
+      render();
+      show(r.tier, r.sub);
+      box.classList.add('landed');
+      requestAnimationFrame(() => { q('.bar i').style.width = `${r.progress * 100}%`; });
+      $('announce').textContent = spoken;
+      $('done').focus({ preventScroll: true });
+      if (reduce.matches) return;
+      flash.animate([{ opacity: 0, transform: 'scale(.15) rotate(0)' }, { opacity: 1, transform: 'scale(1) rotate(15deg)', offset: .22 }, { opacity: 0, transform: 'scale(1.25) rotate(40deg)' }], { duration: 1000, easing: 'ease-out' });
+      assemble(r.tier, 820);
+      medal.animate([{ opacity: 0, filter: 'blur(10px) brightness(2.5)' }, { opacity: 0, offset: .5 }, { opacity: 1, filter: 'blur(0) brightness(1.7)', offset: .78 }, { opacity: 1, filter: 'none' }], { duration: 1350, easing: 'ease-out' });
+      const wing = (sel, deg) => medal.querySelector(sel).animate([{ transform: `scaleX(.15) rotate(${deg}deg)` }, { transform: `scaleX(.15) rotate(${deg}deg)`, offset: .5 }, { transform: 'none' }], { duration: 1350, easing: 'cubic-bezier(.3,1.5,.5,1)' });
+      wing('.wl', 24);
+      wing('.wr', -24);
+      timer = setTimeout(impact, 820);
+    };
+    box.classList.remove('landed');
+    if (reduce.matches) return land();
+    finish = land;
+    show(0);
+    intro.animate([{ opacity: 0, transform: 'scale(1.3)', filter: 'blur(12px)' }, { opacity: 1, transform: 'none', filter: 'none', offset: .3 }, { opacity: 1, offset: .8 },
+      { opacity: 0, transform: 'scale(.92)', filter: 'blur(6px)' }], { duration: 1100, easing: 'ease-out' });
+    for (const el of [medal, name, star]) el.animate([{ opacity: 0 }, { opacity: 0 }], { duration: 950 });
+    warp(50);
+    let t = 0;
+    const tick = () => {
+      if (t >= r.tier) {   // khựng: hút về một điểm sáng, tối lại
+        medal.animate([{ transform: 'none', opacity: 1, filter: 'none' }, { transform: 'scale(.08)', opacity: 0, filter: 'brightness(4)' }], { duration: 360, easing: 'ease-in', fill: 'forwards' });
+        log.animate([{ filter: 'none' }, { filter: 'brightness(.35)' }], { duration: 400, fill: 'forwards' });
+        implode(170, 420);
+        return (timer = setTimeout(land, 560));
+      }
+      show(t);
+      const ms = Math.max(180, 440 - t * 38);
+      medal.animate([{ opacity: 0, transform: 'scale(.55)', filter: 'blur(8px) brightness(3)' }, { opacity: 1, transform: 'none', filter: 'none', offset: .45 }, { opacity: 1, transform: 'scale(1.05)' }],
+        { duration: ms, easing: 'cubic-bezier(.2,.9,.3,1.2)' });
+      name.animate([{ opacity: 0, transform: 'translateY(30%)', filter: 'blur(6px)' }, { opacity: 1, transform: 'none', filter: 'none' }], { duration: Math.min(ms, 240) });
+      ghost.textContent = TIERS[t].name;
+      ghost.animate([{ opacity: 0, transform: 'scale(1.3)' }, { opacity: .5, transform: 'none', offset: .4 }, { opacity: 0, transform: 'scale(.9)' }], { duration: ms * 1.7, easing: 'ease-out' });
+      wave(rings[0], 2.4, 600);
+      warp(10 + t * 4);
+      timer = setTimeout(() => { shatter(t, 4.5 + t * .5); t++; tick(); }, ms);   // vỡ thành mảnh ngay lúc bậc kế tiếp hiện ra
+    };
+    timer = setTimeout(tick, 1000);
+  }
+
+  function undo() {
+    const i = state.log.indexOf(saved);
+    if (i >= 0) { state.log.splice(i, 1); persist(); render(); }
+    clearTimeout(timer);
+    finish = saved = null;
+    $('log').style.removeProperty('--c');
+    step(2);
+  }
+
+  // ---- Bảng yêu cầu từng rank của một bài (dùng ở cả bảng rank và trang chi tiết bài) ----
+  function tierRows(id) {
+    const ex = EXERCISES[id], th = thresholds(id, state.sex), bw = state.bw, mine = st.byEx[id]?.tier ?? -1;
+    const half = n => Math.ceil(n * 2 - 1e-9) / 2;
+    return TIERS.map((t, i) => {
+      const add = half(th[i] * bw - bw);
+      const need = !i ? 'Điểm xuất phát' : !bw ? `Từ ${th[i].toLocaleString('vi-VN', { maximumFractionDigits: 2 })} lần cân nặng`
+        : !ex.bw ? `Từ ${fmt(half(th[i] * bw))} kg${ex.each ? ' mỗi tay' : ''}`
+        : add > 0 ? `Đeo thêm từ ${fmt(add)} kg` : add < 0 ? `Máy hỗ trợ tối đa ${fmt(-add)} kg` : 'Không đeo tạ';
+      return `<li class="${i === mine ? 'mine' : ''}" style="--c:${t.color}">${emblem(i)}
+        <div class="grow"><span class="tier">${t.name}</span><small style="margin:2px 0 0">${need}${i === mine ? '. Kỷ lục của bạn đang ở đây' : ''}</small></div></li>`;
+    }).reverse().join('');
+  }
+  const tiersNote = id => (state.bw ? `tính cho 1 rep ở cân nặng ${fmt(state.bw)} kg` : 'tính theo số lần cân nặng, nhập cân nặng để xem ra kg');
+
+  function openTiers() {
+    $('tiersSub').textContent = `Mức cần đạt với ${EXERCISES[cur].name}, ${tiersNote(cur)}. Muốn xem bài khác thì bấm › ở dòng bài đó.`;
+    $('tiersList').innerHTML = tierRows(cur);
+    $('tiers').showModal();
+    $('tiers').scrollTop = 0;
+  }
+
+  // ---- Chi tiết bài: biểu đồ 1RM ước tính theo thời gian + các lần ghi + yêu cầu từng rank ----
+  // Một chuỗi số liệu nên không cần chú giải; đường ngang là mức của rank kế tiếp. Chạm một điểm để đọc số; bảng bên dưới có đủ mọi lần ghi.
+  let points = [];
+  const readout = p => `${day(p.e.t, true)}: ${load(p.id, p.e.kg)} × ${p.e.reps} rep, 1RM ước tính ${fmt(p.v)} kg`;
+  function chart(id, entries, rec) {
+    points = entries.map(e => ({ id, e, v: rate(id, state.sex, state.bw, e.kg, e.reps).oneRm }));
+    if (points.length < 2) return '<p class="sub">Ghi thêm ít nhất một lần nữa để thấy biểu đồ tiến bộ.</p>';
+    const W = 320, H = 156, L = 34, R = 12, T = 16, B = 24;
+    const goal = rec.tier < TOP ? thresholds(id, state.sex)[rec.tier + 1] * state.bw : null;
+    const vs = points.map(p => p.v).concat(goal ?? []);
+    const lo = Math.floor(Math.min(...vs) / 5) * 5, hi = Math.max(Math.ceil(Math.max(...vs) / 5) * 5, lo + 5);
+    const t0 = points[0].e.t, t1 = points.at(-1).e.t;
+    const y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+    points.forEach((p, i) => { p.x = L + (t1 > t0 ? (p.e.t - t0) / (t1 - t0) : i / (points.length - 1)) * (W - L - R); p.y = y(p.v); });
+    const last = points.at(-1);
+    const tick = day(t0, true) === day(t1, true) ? t => new Date(t).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : t => day(t);
+    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Biểu đồ 1RM ước tính của ${EXERCISES[id].name} qua ${points.length} lần ghi">
+      ${[lo, (lo + hi) / 2, hi].map(v => `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/>
+        <text x="${L - 6}" y="${y(v) + 3.5}" text-anchor="end">${fmt(v)}</text>`).join('')}
+      ${goal ? `<line class="goal" x1="${L}" x2="${W - R}" y1="${y(goal)}" y2="${y(goal)}"/>
+        <text class="lbl" x="${L + 4}" y="${y(goal) - 4}">${TIERS[rec.tier + 1].name}: ${fmt(goal)} kg</text>` : ''}
+      <text x="${L}" y="${H - 6}">${tick(t0)}</text><text x="${W - R}" y="${H - 6}" text-anchor="end">${tick(t1)}</text>
+      <polyline fill="none" stroke="var(--c)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="${points.map(p => `${p.x},${p.y}`).join(' ')}"/>
+      ${points.map(p => `<circle cx="${p.x}" cy="${p.y}" r="4" fill="var(--c)" stroke="var(--panel)" stroke-width="2"/>`).join('')}
+      <circle id="sel" cx="${last.x}" cy="${last.y}" r="7" fill="none" stroke="var(--text)" stroke-width="1.5"/>
+      ${points.map((p, i) => `<circle class="hit" data-i="${i}" cx="${p.x}" cy="${p.y}" r="16"/>`).join('')}
+    </svg><p class="sub" id="read" aria-live="polite">${readout(last)}</p>`;
+  }
+  const point = e => {
+    const p = points[e.target.closest?.('.hit')?.dataset.i];
+    if (!p) return;
+    $('sel').setAttribute('cx', p.x);
+    $('sel').setAttribute('cy', p.y);
+    $('read').textContent = readout(p);
+  };
+
+  let detailId = null;
+  function renderDetail() {
+    const id = detailId, ex = EXERCISES[id], r = st.byEx[id];
+    const entries = state.log.filter(e => e.id === id).sort((a, b) => a.t - b.t);
+    $('detail').style.setProperty('--c', r ? TIERS[r.tier].color : '#5a6488');
+    $('dBody').innerHTML = `<div class="flex top">${r ? emblem(r.tier, r.sub) : SLOT}<div class="grow">
+        <h2>${ex.name}</h2>
+        <p class="sub">${r ? `${label(r.tier, r.sub)}. Kỷ lục ${load(id, r.entry.kg)} × ${r.entry.reps} rep.` : 'Chưa ghi lần nào.'}</p></div></div>
+      <button class="ghost-btn" type="button" data-log="${id}">Ghi mức tạ bài này</button>
+      ${ex.machine ? '<p class="sub">Máy mỗi phòng tập nặng nhẹ khác nhau, rank bài này chỉ để tham khảo.</p>' : ''}
+      ${r ? `<h3>1RM ước tính theo thời gian</h3>${ex.bw ? '<small>Tính cả cân nặng cơ thể.</small>' : ''}${chart(id, entries, r)}
+        <h3>Các lần ghi</h3><ul>${entries.map(e => ({ e, v: rate(id, state.sex, state.bw, e.kg, e.reps).oneRm })).reverse().map(({ e, v }) => `<li>
+          <div class="grow"><b>${load(id, e.kg)} × ${e.reps} rep</b><small>${day(e.t, true)}, 1RM ước tính ${fmt(v)} kg${e === r.entry ? ', kỷ lục' : ''}</small></div>
+          <button class="del" type="button" data-rm="${state.log.indexOf(e)}" aria-label="Xóa lần ghi ${load(id, e.kg)} × ${e.reps} rep ngày ${day(e.t, true)}">Xóa</button></li>`).join('')}</ul>` : ''}
+      <h3>Yêu cầu từng rank</h3><small>${tiersNote(id)[0].toUpperCase() + tiersNote(id).slice(1)}.</small>
+      <ul class="tiers">${tierRows(id)}</ul>`;
+  }
+  function openDetail(id) {
+    detailId = id;
+    renderDetail();
+    $('detail').showModal();
+    $('detail').scrollTop = 0;
+  }
+  $('dBody').onpointerover = point;
+  $('dBody').onclick = e => {
+    point(e);
+    const again = e.target.closest('[data-log]');
+    if (again) { $('detail').close(); return openLog(again.dataset.log); }
+    const rm = e.target.closest('[data-rm]');
+    if (!rm || !second('rm:' + rm.dataset.rm, rm, 'Xóa?')) return;
+    state.log.splice(Number(rm.dataset.rm), 1);
+    persist();
+    render();
+    renderDetail();
+  };
+
+  // ---- Hồ sơ ----
+  const dlg = $('profile');
+  const openProfile = () => {
+    dlg.querySelector(`input[value="${state.sex}"]`).checked = true;
+    $('bw').value = state.bw || '';
+    dlg.showModal();
+  };
+  $('me').onclick = openProfile;
+  $('overall').onclick = e => e.target.closest('.ladder') && openTiers();
+  // Huy hiệu hạng tổng nghiêng theo ngón tay hoặc chuột.
+  $('overall').onpointermove = e => {
+    const tr = e.target.closest('.trophy');
+    if (!tr) return;
+    const b = tr.getBoundingClientRect();
+    tr.style.setProperty('--ry', `${((e.clientX - b.left) / b.width - .5) * 26}deg`);
+    tr.style.setProperty('--rx', `${-((e.clientY - b.top) / b.height - .5) * 20}deg`);
+  };
+  $('overall').onpointerleave = () => { const tr = $('overall').querySelector('.trophy'); tr?.style.removeProperty('--rx'); tr?.style.removeProperty('--ry'); };
+  dlg.addEventListener('close', () => {
+    const bw = parseFloat($('bw').value);
+    if (bw >= 30 && bw <= 250) state.bw = bw;
+    state.sex = dlg.querySelector('input[name=sex]:checked').value;
+    persist();
+    render();
+  });
+
+  document.body.classList.add('boot');
+  render();
+  setTimeout(() => document.body.classList.remove('boot'), 1600);
+</script>
+</body>
+</html>
