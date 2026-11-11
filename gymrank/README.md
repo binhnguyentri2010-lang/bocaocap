@@ -1,4 +1,6 @@
-# GymRank 🏋️
+# Iron Ascend 🏋️
+
+Tên hiển thị trong app là **Iron Ascend**; thư mục, khóa lưu dữ liệu (`gymrank`) và tiêu đề Artifact vẫn giữ tên cũ GymRank để không mất dữ liệu.
 
 Web app xếp hạng sức mạnh: nhập mức tạ (kg) và số rep, app cho biết bạn đang ở rank nào, cần thêm bao nhiêu kg để lên bậc kế tiếp, và giữ lịch sử để xem tiến bộ. Không cần cài đặt hay build.
 
