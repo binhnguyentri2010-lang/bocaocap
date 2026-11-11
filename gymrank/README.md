@@ -12,13 +12,13 @@ Web app xếp hạng sức mạnh: nhập mức tạ (kg) và số rep, app cho 
 
 1. **1RM ước tính** theo công thức Epley: `1RM = kg × (1 + rep / 30)`. Với 1 rep thì 1RM chính là mức tạ đó. Từ khoảng 10 rep trở lên, ước tính kém chính xác hơn.
 2. **Tỉ lệ** = 1RM ÷ cân nặng cơ thể. Với hít xà và dips, tải = cân nặng + tạ đeo thêm (dùng máy hỗ trợ thì nhập số âm). Bài tạ đơn nhập số kg của **một tay**.
-3. Tỉ lệ được so với ngưỡng của bài để ra 1 trong 9 rank: **Gỗ → Sắt → Đồng → Bạc → Vàng → Bạch kim → Kim cương → Cao thủ → Huyền thoại**. Mỗi rank (trừ Huyền thoại) chia đều thành 3 bậc phụ **I, II, III**.
+3. Tỉ lệ được so với ngưỡng của bài để ra 1 trong 9 rank: **Đồng → Bạc → Vàng → Bạch kim → Kim cương → Cao thủ → Đại cao thủ → Thách đấu → Huyền thoại**. Mỗi rank (trừ Huyền thoại) chia đều thành 3 bậc phụ **I, II, III**.
 4. **Kỷ lục của một bài** = lần ghi có 1RM ước tính cao nhất trong lịch sử.
 5. **Rank nhóm cơ** = bài tốt nhất của nhóm. **Rank tổng** = trung bình các nhóm cơ đã ghi, nên ghi nhiều bài ngực không kéo lệch rank tổng.
 
 ### Bài tập và ngưỡng
 
-7 bài gốc có bảng ngưỡng riêng (nam, tính theo số lần cân nặng, để lên Sắt / Đồng / Bạc / Vàng / Bạch kim / Kim cương / Cao thủ / Huyền thoại):
+7 bài gốc có bảng ngưỡng riêng (nam, tính theo số lần cân nặng, để lên Bạc / Vàng / Bạch kim / Kim cương / Cao thủ / Đại cao thủ / Thách đấu / Huyền thoại):
 
 | Bài gốc | Ngưỡng | Hệ số nữ |
 | --- | --- | --- |
@@ -49,9 +49,10 @@ Web app xếp hạng sức mạnh: nhập mức tạ (kg) và số rep, app cho 
 ## Cấu trúc
 
 ```
-index.html          giao diện, huy hiệu SVG, biểu đồ, lưu dữ liệu
+index.html          giao diện, animation huy hiệu và lên bậc, biểu đồ, lưu dữ liệu
+ranks.webp          9 huy hiệu (lưới 3×3, ô 520×280, nền trong suốt), cắt từ ảnh bộ huy hiệu do chủ dự án cung cấp; chưa rõ nguồn gốc và quyền sử dụng ảnh
 rank.js             logic: bài tập, ngưỡng, 1RM, rank bài / nhóm cơ / tổng, chuyển dữ liệu cũ
 rank.test.mjs       kiểm tra logic: node gymrank/rank.test.mjs
-build-artifact.mjs  gộp index.html + rank.js thành một file để đăng lên Claude Artifact
+build-artifact.mjs  gộp index.html + rank.js + ranks.webp (data URI) thành một file để đăng lên Claude Artifact
 icon.png            icon màn hình chính
 ```

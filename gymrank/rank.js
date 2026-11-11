@@ -1,15 +1,15 @@
 // Logic xếp hạng, không đụng DOM để test được bằng Node (rank.test.mjs).
 
 export const TIERS = [
-  { name: 'Gỗ', color: '#9b6b43' },
-  { name: 'Sắt', color: '#7b828c' },
-  { name: 'Đồng', color: '#c27a46' },
-  { name: 'Bạc', color: '#c9d1dc' },
-  { name: 'Vàng', color: '#f0bd3c' },
-  { name: 'Bạch kim', color: '#4fd1c1' },
-  { name: 'Kim cương', color: '#5b9cff' },
-  { name: 'Cao thủ', color: '#ff5d73' },
-  { name: 'Huyền thoại', color: '#c46bff' },
+  { name: 'Đồng', color: '#d39468' },
+  { name: 'Bạc', color: '#c8d2e0' },
+  { name: 'Vàng', color: '#e7c27a' },
+  { name: 'Bạch kim', color: '#8fe0d8' },
+  { name: 'Kim cương', color: '#6f9dff' },
+  { name: 'Cao thủ', color: '#b57cff' },
+  { name: 'Đại cao thủ', color: '#ff7465' },
+  { name: 'Thách đấu', color: '#7fa6ff' },
+  { name: 'Huyền thoại', color: '#f2d7a0' },
 ];
 // Mỗi rank (trừ rank cao nhất) chia đều thành 3 bậc phụ.
 export const SUBS = ['I', 'II', 'III'];
