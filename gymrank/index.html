@@ -356,9 +356,9 @@
     footer { margin-top:18px; text-align:center; }
 
     /* Trang chính dịu mắt: cùng huy hiệu và chuyển động, nhưng ánh sáng yếu hơn, ít đốm hơn. Màn hình kết quả (#result) không bị ảnh hưởng. */
-    main .trophy .emb { filter:brightness(.88); }
+    main .trophy .emb:not(.none) { filter:brightness(.85); }
     main .gr, main .t7 .gr, main .t8 .gr { opacity:.18; -webkit-mask:radial-gradient(closest-side,#000 5%,transparent 55%); mask:radial-gradient(closest-side,#000 5%,transparent 55%); }
-    main .flare { opacity:.55; animation-duration:5s; }
+    main .flare, main .t4 .flare, main .t6 .flare, main .t7 .flare { filter:opacity(.45); animation-duration:5s; }
     main .tw:nth-child(odd), main .du:nth-child(odd) { display:none; }
     main .tw, main .du { filter:opacity(.6); }
     main .pl { filter:blur(3px) opacity(.5); }
