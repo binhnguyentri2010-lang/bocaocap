@@ -130,7 +130,7 @@ const CONFIG = {
   heroMove: { run: 9, jump: 10, airAccel: 12, wallClimb: 11, wallJump: 11 },
   // zip: tốc độ rút dây lúc mới bắn (kéo người lên khỏi mặt đất); reel: rút chậm khi đang đu; pump: lực đạp theo hướng bấm
   rope: { maxLen: 75, minLen: 8, minRise: 6, maxRise: 45, zip: 18, reel: 3, pump: 7, releaseBoost: 4 },
-  carMove: { accel: 16, maxSpeed: 42, flySpeed: 60, reverse: 12, grip: 5, flyGrip: 2.5, lift: 14, ceiling: 170 },
+  carMove: { accel: 12, maxSpeed: 42, flySpeed: 60, reverse: 12, grip: 5, flyGrip: 2.5, lift: 14, ceiling: 170 },
   npc: { cars: 20, people: 40 },   // giảm nếu máy yếu
   maxPixelRatio: 1.5,
 };
@@ -234,7 +234,7 @@ const buildings = [];
 
 (function buildCity() {
   // --- mặt đất, sông -------------------------------------------------------
-  const groundMat = new THREE.MeshLambertMaterial({ color: 0x3b3944 });
+  const groundMat = new THREE.MeshLambertMaterial({ color: 0x66626e });
   for (const s of [-1, 1]) {
     const edge = s < 0 ? RZ0 : RZ1, depth = 1000 - Math.abs(edge);
     const g = new THREE.Mesh(new THREE.PlaneGeometry(2400, depth), groundMat);
@@ -273,7 +273,7 @@ const buildings = [];
     const nearRiver = Math.abs(j - RIVER_ROW) === 1;
     const isPark = rng() < (nearRiver ? 0.3 : 0.08);
     if (isPark) parks.add(j * N + k);
-    addBox(cx, CURB / 2, cz, BLOCK, CURB, BLOCK, isPark ? 0x47704e : 0x6d6875);
+    addBox(cx, CURB / 2, cz, BLOCK, CURB, BLOCK, isPark ? 0x5a8a5e : 0x99939f);
 
     // đèn đường ở giữa 4 cạnh, cây gần 4 góc
     for (const [nx, nz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
@@ -376,18 +376,18 @@ const buildings = [];
 })();
 
 // ============================================================================
-// 9. TRỜI VÀ CHU KỲ NGÀY → ĐÊM
+// 5. TRỜI VÀ CHU KỲ NGÀY → ĐÊM
 // ============================================================================
 const skyMat = new THREE.ShaderMaterial({
   side: THREE.BackSide, depthWrite: false, fog: false,
-  uniforms: { uTop: { value: new THREE.Color() }, uHor: { value: new THREE.Color() }, uSunCol: { value: new THREE.Color() }, uSunDir: { value: new THREE.Vector3(0, 1, 0) } },
+  uniforms: { uTop: { value: new THREE.Color() }, uHor: { value: new THREE.Color() }, uSunCol: { value: new THREE.Color() }, uFog: { value: new THREE.Color() }, uSunDir: { value: new THREE.Vector3(0, 1, 0) } },
   vertexShader: `varying vec3 vDir; void main(){ vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
   fragmentShader: `
-    uniform vec3 uTop, uHor, uSunCol, uSunDir; varying vec3 vDir;
+    uniform vec3 uTop, uHor, uSunCol, uFog, uSunDir; varying vec3 vDir;
     void main(){
       vec3 d = normalize(vDir);
       vec3 c = mix(uHor, uTop, smoothstep(0.0, 0.6, d.y));
-      c = mix(c, uHor * 0.75, smoothstep(0.0, -0.3, d.y));
+      c = mix(c, uFog, smoothstep(0.03, -0.04, d.y));
       float s = max(dot(d, uSunDir), 0.0);
       c += uSunCol * (smoothstep(0.9993, 0.9996, s) * 1.5 + pow(s, 14.0) * 0.4);   // đĩa mặt trời/trăng + quầng
       gl_FragColor = vec4(c, 1.0);
@@ -427,7 +427,7 @@ function applyEnv(t) {
   const night = (game.night = L('night')), e = L('elev') * Math.PI / 2;
   env.sunDir.set(-Math.cos(e) * 0.8, Math.sin(e), -Math.cos(e) * 0.6).normalize();
   skyMat.uniforms.uTop.value.copy(env.top); skyMat.uniforms.uHor.value.copy(env.hor);
-  skyMat.uniforms.uSunCol.value.copy(env.sun); skyMat.uniforms.uSunDir.value.copy(env.sunDir);
+  skyMat.uniforms.uSunCol.value.copy(env.sun); skyMat.uniforms.uFog.value.copy(env.fog); skyMat.uniforms.uSunDir.value.copy(env.sunDir);
   scene.fog.color.copy(env.fog); renderer.setClearColor(env.fog);
   sun.color.copy(env.sun); sun.intensity = L('sunI');
   sun.position.copy(env.sunDir).multiplyScalar(100);
@@ -447,7 +447,7 @@ sys.env = (dt) => {
 };
 
 // ============================================================================
-// 5. ĐIỀU KHIỂN — bàn phím + chuột (laptop), joystick ảo + nút (điện thoại)
+// 6. ĐIỀU KHIỂN — bàn phím + chuột (laptop), joystick ảo + nút (điện thoại)
 // ============================================================================
 const cam = { yaw: Math.PI, pitch: 0.22, dist: 7, fov: 60, target: new THREE.Vector3(), idle: 9 };
 const input = { mx: 0, my: 0, space: false, shift: false, mouse: false, btnA: false, btnB: false, jump: false, interact: false };
@@ -523,7 +523,7 @@ sys.input = () => {
 };
 
 // ============================================================================
-// 6. NẠP MODEL .glb — thiếu file thì dùng model tạm bằng hình khối
+// 7. NẠP MODEL .glb — thiếu file thì dùng model tạm bằng hình khối
 // ============================================================================
 const loader = new GLTFLoader();
 // Trả về một Group rỗng ngay lập tức; model thật (hoặc model tạm) được gắn vào sau
@@ -549,7 +549,7 @@ const blobMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true
 const blobGeo = new THREE.CircleGeometry(1, 16).rotateX(-Math.PI / 2);
 
 // ============================================================================
-// 7. VA CHẠM AABB — dùng chung cho nhân vật và xe
+// 8. VA CHẠM AABB — dùng chung cho nhân vật và xe
 // ============================================================================
 // body: { pos, vel, r }. Sau khi gọi: body.grounded, body.wall (pháp tuyến tường vừa chạm), body.floorY
 function moveBody(b, dt) {
@@ -582,7 +582,7 @@ function moveBody(b, dt) {
 }
 
 // ============================================================================
-// 8. NHÂN VẬT — chạy, nhảy, chạy tường, animation
+// 9. NHÂN VẬT — chạy, nhảy, chạy tường, animation
 // ============================================================================
 const hero = {
   pos: new THREE.Vector3(roadC(BRIDGES[1]) + 3, 0, roadC(RIVER_ROW - 1)), vel: new THREE.Vector3(), r: 0.45,
@@ -653,7 +653,7 @@ function animateFallback(name, dt, speed) {
 }
 
 // ============================================================================
-// 9. ĐU DÂY — chọn điểm neo, vật lý con lắc, vẽ dây
+// 10. ĐU DÂY — chọn điểm neo, vật lý con lắc, vẽ dây
 // ============================================================================
 // Tìm điểm neo: trên mép/mặt tường toà nhà, cao hơn nhân vật, gần nhất phía trước (fx, fz là hướng nhìn)
 function findAnchor(pos, fx, fz, out) {
@@ -776,8 +776,203 @@ sys.hero = (dt) => {
   heroBlob.visible = hero.pos.y - hero.floorY < 12;
 };
 
+
 // ============================================================================
-// 12. CAMERA — góc nhìn thứ ba, bám mượt, không xuyên tường
+// 11. XE — lái arcade, drift nhẹ, bay được, bánh quay, đèn pha
+// ============================================================================
+const car = {
+  pos: new THREE.Vector3(hero.pos.x - 6, 0, hero.pos.z - 7), vel: new THREE.Vector3(), r: 1.5, yaw: Math.PI,
+  grounded: true, wall: null, floorY: 0, flying: false, steer: 0, roll: 0, pitch: 0, spin: 0, wheels: [],
+};
+game.car = car;
+
+// Model tạm: roadster hai cửa dáng thấp, không logo. Bánh đặt đúng tên như trong file .glb
+function makeCarFallback() {
+  const g = new THREE.Group(), R = CONFIG.car.wheelRadius;
+  const extrude = (pts, width, mat) => {
+    const sh = new THREE.Shape(pts.map(([x, y]) => new THREE.Vector2(x, y)));
+    const geo = new THREE.ExtrudeGeometry(sh, { depth: width, bevelEnabled: false }).translate(0, 0, -width / 2).rotateY(-Math.PI / 2);
+    const m = new THREE.Mesh(geo, mat); g.add(m); return m;
+  };
+  // biên dạng nhìn ngang: [dọc thân xe, độ cao]
+  extrude([[-2.1, 0.28], [2.1, 0.28], [2.16, 0.5], [1.25, 0.74], [0.45, 1.12], [-0.5, 1.15], [-1.6, 0.84], [-2.1, 0.8]], 1.8, lambert(CONFIG.car.color));
+  extrude([[1.0, 0.78], [0.42, 1.08], [-0.5, 1.11], [-1.4, 0.86], [-1.4, 0.78]], 1.83, lambert(0x1c2030));   // kính hông
+  const tire = new THREE.CylinderGeometry(R, R, 0.26, 18).rotateZ(Math.PI / 2), rim = new THREE.BoxGeometry(0.28, R * 1.5, 0.09);
+  for (const [name, x, z] of [['FL', 0.86, 1.32], ['FR', -0.86, 1.32], ['RL', 0.86, -1.32], ['RR', -0.86, -1.32]]) {
+    const w = new THREE.Mesh(tire, lambert(0x17171c)); w.name = CONFIG.car.wheels[name]; w.position.set(x, R, z);
+    w.add(new THREE.Mesh(rim, lambert(0xb8bcc6)));                                 // nan hoa để thấy bánh quay
+    g.add(w);
+  }
+  return g;
+}
+// Bọc mỗi bánh trong 2 khớp: khớp ngoài đánh lái (trục đứng), khớp trong quay lăn (trục ngang)
+function setupWheels(model) {
+  car.wheels.length = 0;
+  for (const key of ['FL', 'FR', 'RL', 'RR']) {
+    const w = model.getObjectByName(CONFIG.car.wheels[key]);
+    if (!w) { console.log(`[model] không thấy bánh "${CONFIG.car.wheels[key]}" → bỏ qua`); continue; }
+    const steer = new THREE.Group(), spin = new THREE.Group();
+    steer.position.copy(w.position); w.parent.add(steer); steer.add(spin);
+    w.position.set(0, 0, 0); spin.add(w);
+    car.wheels.push({ steer, spin, front: key[0] === 'F' });
+  }
+}
+car.holder = loadModel(CONFIG.car, makeCarFallback, (model) => setupWheels(model));
+scene.add(car.holder);
+// đèn pha, đèn hậu, quầng sáng gầm xe: gắn theo vị trí trong CONFIG nên dùng được cho cả model thật
+const headMat = new THREE.MeshBasicMaterial({ color: 0x777777 }), tailMat = new THREE.MeshBasicMaterial({ color: 0x551111 });
+for (const [list, mat] of [[CONFIG.car.headlights, headMat], [CONFIG.car.taillights, tailMat]]) for (const p of list) {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), mat); m.position.fromArray(p); m.scale.z = 0.5; car.holder.add(m);
+}
+const headlamp = new THREE.SpotLight(0xfff0d0, 0, 70, 0.5, 0.6, 1.2);
+headlamp.position.set(0, 0.9, 1.8); headlamp.target.position.set(0, -1.5, 16); car.holder.add(headlamp, headlamp.target);
+const hoverGlow = new THREE.Mesh(new THREE.CircleGeometry(1.7, 20).rotateX(-Math.PI / 2),
+  new THREE.MeshBasicMaterial({ color: 0x66e0ff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+hoverGlow.position.y = 0.12; car.holder.add(hoverGlow);
+const carBlob = new THREE.Mesh(blobGeo, blobMat); carBlob.scale.set(1.5, 1, 2.4); scene.add(carBlob);
+
+function enterCar() { hero.inCar = true; hero.rope = null; hero.holder.visible = heroBlob.visible = false; cam.idle = 9; }
+function exitCar() {
+  hero.inCar = false; hero.holder.visible = true;
+  const moving = car.vel.length() > 4 || !car.grounded;
+  hero.vel.copy(car.vel);
+  if (moving) { hero.pos.copy(car.pos); hero.pos.y += 1.6; hero.vel.y += 8; }          // nhảy khỏi xe đang chạy/bay: giữ quán tính
+  else hero.pos.set(car.pos.x + Math.cos(car.yaw) * 2.2, car.pos.y, car.pos.z - Math.sin(car.yaw) * 2.2);  // bước ra bên trái
+  hero.yaw = car.yaw;
+}
+const carDist = () => hero.pos.distanceTo(car.pos);
+
+sys.car = (dt) => {
+  if (input.interact) {
+    if (hero.inCar) exitCar();
+    else if (carDist() < 5) enterCar();
+    else {                                             // ở xa: gọi xe tới đậu cạnh mình
+      car.pos.set(hero.pos.x + Math.cos(cam.yaw) * 4, hero.floorY, hero.pos.z - Math.sin(cam.yaw) * 4);
+      car.vel.set(0, 0, 0); car.flying = false; car.yaw = cam.yaw + Math.PI;
+    }
+  }
+  const D = CONFIG.carMove, drv = hero.inCar, v = car.vel;
+  const thr = drv ? input.my : 0, st = drv ? input.mx : 0;
+  const up = drv && (input.space || input.btnA), down = drv && (input.shift || input.btnB);
+  if (up) car.flying = true;
+
+  // đánh lái: trên đường xe quay theo góc bánh và tốc độ; khi bay thì xoay trực tiếp
+  let fx = Math.sin(car.yaw), fz = Math.cos(car.yaw), vF = v.x * fx + v.z * fz;
+  car.steer = damp(car.steer, st * 0.55 / (1 + Math.abs(vF) / 7.5), 8, dt);   // chạy càng nhanh góc lái càng nhỏ
+  car.yaw -= car.flying ? st * 1.5 * dt : car.steer * vF / 2.6 * dt;
+  fx = Math.sin(car.yaw); fz = Math.cos(car.yaw);
+  const rx = -fz, rz = fx;                            // hướng bên phải của xe
+  vF = v.x * fx + v.z * fz; let vS = v.x * rx + v.z * rz;
+  // ga / phanh / lùi
+  const max = car.flying ? D.flySpeed : D.maxSpeed;
+  if (thr > 0) { if (vF < max) vF += D.accel * thr * dt; }
+  else if (thr < 0) vF = Math.max(-D.reverse, vF + (vF > 0 ? D.accel * 2 : D.accel * 0.6) * thr * dt);
+  else vF *= Math.exp(-0.5 * dt);
+  vS *= Math.exp(-(car.flying ? D.flyGrip : D.grip) * dt);   // vận tốc trượt ngang giảm dần → drift nhẹ
+  v.x = fx * vF + rx * vS; v.z = fz * vF + rz * vS;
+  // lên / xuống: đang bay mà không bấm gì thì lơ lửng; không có người lái thì tự hạ xuống
+  if (car.flying) {
+    v.y = damp(v.y, up ? D.lift : down ? -D.lift : drv ? 0 : -6, 3.5, dt);
+    if (car.pos.y > D.ceiling && v.y > 0) v.y = 0;
+  } else v.y -= CONFIG.gravity * dt;
+  moveBody(car, dt);
+  if (car.grounded && !up) car.flying = false;
+  if (drv) { hero.pos.copy(car.pos); hero.vel.copy(v); hero.floorY = car.floorY; }
+
+  // hình ảnh: nghiêng thân, bánh quay theo tốc độ, 2 bánh trước đánh lái
+  car.roll = damp(car.roll, car.flying ? st * 0.45 : clamp(-vS * 0.012, -0.08, 0.08), 6, dt);
+  car.pitch = damp(car.pitch, car.flying ? clamp(-v.y * 0.022, -0.35, 0.35) : 0, 6, dt);
+  car.holder.position.copy(car.pos); car.holder.rotation.set(car.pitch, car.yaw, car.roll);
+  car.spin += (car.flying ? vF * 0.15 : vF) * dt / CONFIG.car.wheelRadius * CONFIG.car.wheelSpinDir;
+  for (const w of car.wheels) {
+    w.spin.rotation[CONFIG.car.wheelAxis] = car.spin;
+    if (w.front) w.steer.rotation.y = -clamp(car.steer * 4, -0.5, 0.5);
+  }
+  const lit = game.night > 0.3 ? 1 : 0;
+  headMat.color.setScalar(lerp(0.45, 1, lit)); tailMat.color.setRGB(lerp(0.3, 1, lit), 0.06, 0.06);
+  headlamp.intensity = lit * 160;
+  hoverGlow.material.opacity = damp(hoverGlow.material.opacity, car.flying ? 0.5 : 0, 5, dt);
+  carBlob.position.set(car.pos.x, car.floorY + 0.05, car.pos.z); carBlob.rotation.y = car.yaw;
+  carBlob.visible = car.pos.y - car.floorY < 15;
+};
+
+// ============================================================================
+// 12. NPC — xe chạy chậm và người đi bộ (chỉ để trang trí, không va chạm)
+// ============================================================================
+{
+  const NC = CONFIG.npc.cars, NP = CONFIG.npc.people;
+  const carGeo = mergeGeometries([new THREE.BoxGeometry(1.8, 0.7, 4.2).translate(0, 0.65, 0), new THREE.BoxGeometry(1.6, 0.55, 2.2).translate(0, 1.25, -0.2)]);
+  const lightGeo = mergeGeometries([new THREE.BoxGeometry(1.5, 0.14, 0.1).translate(0, 0.75, 2.12), new THREE.BoxGeometry(1.5, 0.14, 0.1).translate(0, 0.75, -2.12)]);
+  const lc = new Float32Array(48 * 3);                // đầu xe trắng vàng, đuôi xe đỏ
+  for (let i = 0; i < 48; i++) lc.set(i < 24 ? [1, 0.93, 0.75] : [1, 0.12, 0.1], i * 3);
+  lightGeo.setAttribute('color', new THREE.BufferAttribute(lc, 3));
+  const npcLightMat = new THREE.MeshBasicMaterial({ vertexColors: true });
+  const cars = new THREE.InstancedMesh(carGeo, new THREE.MeshLambertMaterial(), NC);
+  const lights = new THREE.InstancedMesh(lightGeo, npcLightMat, NC);
+  const CARCOL = [0xd9d2c5, 0x7d8aa6, 0xc9665a, 0x3f4a66, 0xe0b25a, 0x6f9a8a];
+  const list = [];
+  for (let i = 0; i < NC; i++) {
+    const alongX = rng() < 0.65;
+    list.push({ alongX, line: roadC(alongX ? Math.floor(rng() * (N + 1)) : pick(BRIDGES)), dir: rng() < 0.5 ? 1 : -1, s: rr(-HALF, HALF), speed: rr(5, 8) });
+    cars.setColorAt(i, col.setHex(pick(CARCOL)));
+  }
+  cars.frustumCulled = lights.frustumCulled = false;
+  scene.add(cars, lights);
+
+  const manGeo = mergeGeometries([new THREE.CapsuleGeometry(0.2, 0.85, 3, 8).translate(0, 0.72, 0), new THREE.SphereGeometry(0.16, 8, 6).translate(0, 1.52, 0)]);
+  const people = new THREE.InstancedMesh(manGeo, new THREE.MeshLambertMaterial(), NP);
+  const MANCOL = [0xe8c9a0, 0x8fb0d0, 0xd98a7a, 0x9a8fc0, 0xf0e0d0, 0x6a9a7a, 0xd0a060];
+  const walkers = [], PER = BLOCK - 5;                // đi vòng quanh khu nhà trên vỉa hè
+  for (let i = 0; i < NP; i++) {
+    let k, j; do { k = Math.floor(rng() * N); j = Math.floor(rng() * N); } while (j === RIVER_ROW);
+    walkers.push({ x0: blockMin(k) + 2.5, z0: blockMin(j) + 2.5, u: rng() * PER * 4, speed: rr(1, 1.6) * (rng() < 0.5 ? 1 : -1) });
+    people.setColorAt(i, col.setHex(pick(MANCOL)));
+  }
+  people.frustumCulled = false; scene.add(people);
+
+  sys.npc = (dt, now) => {
+    const span = HALF + 20;
+    list.forEach((c, i) => {
+      c.s += c.speed * c.dir * dt; if (c.s > span) c.s = -span; else if (c.s < -span) c.s = span;
+      if (c.alongX) { dummy.position.set(c.s, 0, c.line + 3.3 * c.dir); dummy.rotation.set(0, c.dir * Math.PI / 2, 0); }
+      else { dummy.position.set(c.line - 3.3 * c.dir, 0, c.s); dummy.rotation.set(0, c.dir > 0 ? 0 : Math.PI, 0); }
+      dummy.scale.set(1, 1, 1); dummy.updateMatrix(); cars.setMatrixAt(i, dummy.matrix); lights.setMatrixAt(i, dummy.matrix);
+    });
+    cars.instanceMatrix.needsUpdate = lights.instanceMatrix.needsUpdate = true;
+    npcLightMat.color.setScalar(lerp(0.35, 1, game.night));
+    walkers.forEach((w, i) => {
+      w.u = (w.u + w.speed * dt + PER * 4) % (PER * 4);
+      const side = Math.floor(w.u / PER), t = w.u - side * PER;
+      const x = side === 0 ? t : side === 1 ? PER : side === 2 ? PER - t : 0, z = side === 0 ? 0 : side === 1 ? t : side === 2 ? PER : PER - t;
+      dummy.position.set(w.x0 + x, CURB + Math.abs(Math.sin(now * 7 + i)) * 0.06, w.z0 + z);
+      dummy.rotation.set(0, (w.speed > 0 ? side : side + 2) * -Math.PI / 2 + Math.PI / 2, 0); dummy.updateMatrix(); people.setMatrixAt(i, dummy.matrix);
+    });
+    people.instanceMatrix.needsUpdate = true;
+  };
+}
+
+// ============================================================================
+// 13. GIAO DIỆN — nhãn nút đổi theo tình huống
+// ============================================================================
+{
+  let last = '';
+  const tail = isTouch ? '' : ' (E)';
+  sys.ui = () => {
+    const state = hero.inCar ? 'car' : carDist() < 5 ? 'near' : 'far';
+    if (state === last) return; last = state;
+    $('btnE').hidden = false;
+    $('btnE').textContent = (state === 'car' ? 'Xuống xe' : state === 'near' ? 'Lên xe' : 'Gọi xe') + tail;
+    $('btnA').textContent = state === 'car' ? 'Bay lên' : 'Đu dây';
+    $('btnB').textContent = state === 'car' ? 'Hạ xuống' : 'Nhảy';
+    $('btnRadio').hidden = state !== 'car';
+    if (!isTouch) $('help').textContent = state === 'car'
+      ? 'W/S ga – phanh · A/D lái · Giữ Space bay lên · Shift hạ xuống · R đổi bài · E xuống xe'
+      : 'WASD di chuyển · Chuột xoay camera · Space nhảy · Giữ chuột trái / Shift đu dây · E lên xe / gọi xe · M nhạc';
+  };
+}
+
+// ============================================================================
+// 14. CAMERA — góc nhìn thứ ba, bám mượt, không xuyên tường
 // ============================================================================
 // Khoảng cách từ điểm o theo hướng d tới toà nhà gần nhất (tối đa max)
 function rayBoxes(o, d, max) {
@@ -820,7 +1015,127 @@ sys.camera = (dt) => {
 game.cam = cam; game.input = input; game.findAnchor = findAnchor; game.groundY = groundY; game.allBoxes = allBoxes;
 
 // ============================================================================
-// 14. VÒNG LẶP CHÍNH + tự hạ độ phân giải khi fps thấp
+// 15. ÂM THANH — nhạc lo-fi tự tạo bằng Web Audio, tiếng động cơ điện, tiếng gió
+// ============================================================================
+// Mỗi "bài" là một vòng 4 hợp âm (số nốt MIDI) với nhịp độ riêng
+const TRACKS = [
+  { name: 'Hoàng hôn', bpm: 72, chords: [[57, 60, 64, 67], [53, 57, 60, 64], [48, 52, 55, 59], [55, 59, 62, 65]] },
+  { name: 'Phố đêm', bpm: 82, chords: [[50, 53, 57, 60], [55, 59, 62, 65], [48, 52, 55, 59], [57, 60, 64, 67]] },
+  { name: 'Mưa nhẹ', bpm: 64, chords: [[53, 57, 60, 64], [52, 55, 59, 62], [50, 53, 57, 60], [48, 52, 55, 59]] },
+];
+const audio = { ctx: null, on: true, track: 0, next: 0, step: 0 };
+game.audio = audio;
+game.startAudio = () => {
+  if (audio.ctx) { audio.ctx.resume(); return; }
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;                                   // trình duyệt không hỗ trợ: game vẫn chạy, chỉ không có tiếng
+  const ctx = (audio.ctx = new AC());
+  const gain = (v, to) => { const g = ctx.createGain(); g.gain.value = v; g.connect(to); return g; };
+  const filter = (type, f, to, q = 0.7) => { const n = ctx.createBiquadFilter(); n.type = type; n.frequency.value = f; n.Q.value = q; n.connect(to); return n; };
+  const master = gain(0.8, ctx.destination);
+  audio.music = gain(audio.on ? 0.6 : 0, master);
+  audio.bus = filter('lowpass', 3000, audio.music);  // cắt tiếng cao cho chất "băng cũ"
+  // tiếng ồn trắng (trống) và tiếng rè đĩa than
+  const len = ctx.sampleRate * 2;
+  audio.noise = ctx.createBuffer(1, len, ctx.sampleRate);
+  const crackle = ctx.createBuffer(1, len, ctx.sampleRate);
+  const nd = audio.noise.getChannelData(0), cd = crackle.getChannelData(0);
+  for (let i = 0; i < len; i++) { nd[i] = Math.random() * 2 - 1; cd[i] = Math.random() < 0.0012 ? Math.random() * 2 - 1 : nd[i] * 0.015; }
+  const loop = (buf, to) => { const n = ctx.createBufferSource(); n.buffer = buf; n.loop = true; n.connect(to); n.start(); return n; };
+  loop(crackle, filter('highpass', 1200, gain(0.07, audio.music)));
+  // động cơ điện: tiếng ù trầm + tiếng rít cao, cao độ theo tốc độ
+  audio.engGain = gain(0, master);
+  const osc = (type, to) => { const o = ctx.createOscillator(); o.type = type; o.connect(to); o.start(); return o; };
+  audio.hum = osc('triangle', filter('lowpass', 400, audio.engGain));
+  audio.whine = osc('sine', gain(0.35, audio.engGain));
+  // gió khi bay nhanh
+  audio.windGain = gain(0, master);
+  audio.windF = filter('bandpass', 400, audio.windGain, 0.5);
+  loop(audio.noise, audio.windF);
+};
+function tone(midi, t, dur, type, vol, attack) {
+  const ctx = audio.ctx, o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = type; o.frequency.value = 440 * Math.pow(2, (midi - 69) / 12); o.detune.value = Math.random() * 16 - 8;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + attack); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(audio.bus); o.start(t); o.stop(t + dur + 0.05);
+}
+function drum(t, dur, vol, type, freq) {               // trống từ tiếng ồn qua bộ lọc
+  const ctx = audio.ctx, n = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+  n.buffer = audio.noise; f.type = type; f.frequency.value = freq;
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  n.connect(f).connect(g).connect(audio.bus); n.start(t, Math.random(), dur + 0.05);
+}
+function kick(t) {
+  const ctx = audio.ctx, o = ctx.createOscillator(), g = ctx.createGain();
+  o.frequency.setValueAtTime(120, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.12);
+  g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
+  o.connect(g).connect(audio.bus); o.start(t); o.stop(t + 0.3);
+}
+// Một bước = 1 móc đơn; 8 bước = 1 ô nhịp
+function scheduleStep(s, t, sd, tr) {
+  const i = s % 8, chord = tr.chords[Math.floor(s / 8) % tr.chords.length];
+  const tt = t + (i % 2 ? sd * 0.14 : 0);              // nốt lẻ trễ một chút → nhịp lắc lư
+  if (i === 0) for (const n of chord) tone(n, t, sd * 8, 'triangle', 0.05, 0.35);     // hợp âm nền
+  if (i === 0 || i === 5) { kick(tt); tone(chord[0] - 12, tt, sd * 2.5, 'sine', 0.2, 0.02); }
+  if (i === 2 || i === 6) drum(tt, 0.14, 0.13, 'bandpass', 1700);
+  drum(tt, 0.04, i % 2 ? 0.025 : 0.04, 'highpass', 7000);
+  if (i && Math.random() < 0.3) tone(chord[Math.floor(Math.random() * 4)] + 12, tt, sd * 2.2, 'sine', 0.06, 0.01);  // vài nốt giai điệu
+}
+sys.audio = () => {
+  const ctx = audio.ctx;
+  if (!ctx || ctx.state !== 'running') return;
+  const tr = TRACKS[audio.track], sd = 30 / tr.bpm, now = ctx.currentTime;
+  if (audio.next < now) audio.next = now + 0.05;
+  if (audio.on) while (audio.next < now + 0.25) { scheduleStep(audio.step++, audio.next, sd, tr); audio.next += sd; }
+  const sp = car.vel.length(), k = hero.inCar ? 1 : 0;
+  audio.hum.frequency.setTargetAtTime(60 + sp * 2 + (car.flying ? 25 : 0), now, 0.1);
+  audio.whine.frequency.setTargetAtTime(240 + sp * 20 + (car.flying ? 180 : 0), now, 0.1);
+  audio.engGain.gain.setTargetAtTime(k * (0.04 + Math.min(sp / 60, 1) * 0.05), now, 0.15);
+  const hs = hero.inCar ? sp * 0.5 : hero.vel.length(), w = clamp((hs - 12) / 45, 0, 1);
+  audio.windGain.gain.setTargetAtTime(w * w * 0.3, now, 0.2); audio.windF.frequency.setTargetAtTime(300 + hs * 12, now, 0.2);
+};
+let toastT = 0;
+function toast(text) { const el = $('toast'); el.textContent = text; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 2200); }
+game.toggleMusic = () => {
+  audio.on = !audio.on; $('btnMusic').classList.toggle('on', audio.on);
+  if (audio.ctx) audio.music.gain.setTargetAtTime(audio.on ? 0.6 : 0, audio.ctx.currentTime, 0.15);
+  toast(audio.on ? 'Nhạc: bật' : 'Nhạc: tắt');
+};
+game.nextTrack = () => {                               // radio chỉ đổi bài được khi ngồi trong xe
+  if (!hero.inCar) return;
+  audio.track = (audio.track + 1) % TRACKS.length; audio.step = 0;
+  toast('📻 ' + TRACKS[audio.track].name);
+};
+$('btnMusic').addEventListener('click', () => { game.startAudio(); game.toggleMusic(); });
+$('btnRadio').addEventListener('click', () => game.nextTrack());
+document.addEventListener('visibilitychange', () => { if (audio.ctx) document.hidden ? audio.ctx.suspend() : audio.ctx.resume(); });
+
+// ============================================================================
+// 16. TỰ KIỂM TRA — mở với ?test=1 rồi xem console
+// ============================================================================
+if (params.has('test')) {
+  const ok = (cond, msg) => console.assert(cond, '[test] ' + msg);
+  const zMid = (RZ0 + RZ1) / 2, o = allBoxes[0], cx = (o.minX + o.maxX) / 2, cz = (o.minZ + o.maxZ) / 2;
+  ok(groundY(roadC(1), roadC(1)) === 0 && groundY(blockMin(0) + 5, blockMin(0) + 5) === CURB, 'độ cao đường / vỉa hè');
+  ok(groundY(blockMin(0) + 5, zMid) === RIVER_BED && groundY(roadC(BRIDGES[0]), zMid) === 0, 'lòng sông / mặt cầu');
+  const b = { pos: new THREE.Vector3(cx, 1, o.minZ + 0.2), vel: new THREE.Vector3(0, 0, 3), r: 0.45 };
+  moveBody(b, 0);
+  ok(Math.abs(b.pos.z - (o.minZ - 0.45)) < 1e-6 && b.vel.z === 0 && b.wall.nz === -1, 'AABB đẩy vật ra khỏi tường');
+  b.pos.set(cx, o.top + 0.3, cz); b.vel.set(0, -8, 0); moveBody(b, 0.05);
+  ok(b.grounded && b.pos.y === o.top, 'đáp lên sân thượng');
+  const from = new THREE.Vector3(cx, CURB, o.minZ - 9), a = new THREE.Vector3();
+  ok(findAnchor(from, 0, 1, a) && a.y - from.y >= CONFIG.rope.minRise && a.distanceTo(from) <= CONFIG.rope.maxLen && a.z > from.z, 'điểm neo ở trên cao phía trước');
+  const sp = hero.pos.clone(); hero.pos.copy(from); hero.vel.set(6, 0, 0);
+  hero.rope = { anchor: a, len: a.distanceTo(from), rate: 0, clear: 8 };
+  let over = 0;
+  for (let i = 0; i < 400; i++) { heroStep(1 / 120, false); over = Math.max(over, Math.hypot(a.x - hero.pos.x, a.y - hero.pos.y - HAND_Y, a.z - hero.pos.z) - hero.rope.len); }
+  ok(over < 1e-6, 'dây không bao giờ dài quá chiều dài: ' + over);
+  hero.rope = null; hero.pos.copy(sp); hero.vel.set(0, 0, 0);
+  console.log('[test] đã chạy xong các phép thử');
+}
+
+// ============================================================================
+// 17. VÒNG LẶP CHÍNH + tự hạ độ phân giải khi fps thấp
 // ============================================================================
 const clock = new THREE.Clock();
 let fpsT = 0, fpsN = 0;
@@ -836,6 +1151,7 @@ function frame() {
     if (game.fps < 45 && pixelRatio > 0.75 && !document.hidden) { pixelRatio = Math.max(0.75, pixelRatio - 0.25); renderer.setPixelRatio(pixelRatio); resize(); }
   }
 }
+
 // Chạy n bước mô phỏng không cần vẽ (dùng cho kiểm thử tự động)
 let simNow = 0;
 game.step = (n, dt = 1 / 60) => { for (let i = 0; i < n; i++) { simNow += dt; for (const k of ORDER) sys[k]?.(dt, simNow); } };
