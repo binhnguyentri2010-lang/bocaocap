@@ -128,7 +128,8 @@ const CONFIG = {
   startTime: 0,        // 0 = hoàng hôn, 0.3 = đêm, 0.8 = ban ngày
   gravity: 26,
   heroMove: { run: 9, jump: 10, airAccel: 12, wallClimb: 11, wallJump: 11 },
-  rope: { maxLen: 75, minLen: 8, minRise: 6, maxRise: 45, reel: 3, pump: 7, releaseBoost: 4 },
+  // zip: tốc độ rút dây lúc mới bắn (kéo người lên khỏi mặt đất); reel: rút chậm khi đang đu; pump: lực đạp theo hướng bấm
+  rope: { maxLen: 75, minLen: 8, minRise: 6, maxRise: 45, zip: 18, reel: 3, pump: 7, releaseBoost: 4 },
   carMove: { accel: 16, maxSpeed: 42, flySpeed: 60, reverse: 12, grip: 5, flyGrip: 2.5, lift: 14, ceiling: 170 },
   npc: { cars: 20, people: 40 },   // giảm nếu máy yếu
   maxPixelRatio: 1.5,
@@ -445,12 +446,378 @@ sys.env = (dt) => {
   sky.position.copy(camera.position); stars.position.copy(camera.position);
 };
 
-// camera tạm cho tới khi có nhân vật: lượn chậm quanh trung tâm
-sys.camera = (dt, now) => {
-  const a = now * 0.05;
-  camera.position.set(Math.sin(a) * 170, 70, Math.cos(a) * 170 - 40);
-  camera.lookAt(0, 20, -40);
+// ============================================================================
+// 5. ĐIỀU KHIỂN — bàn phím + chuột (laptop), joystick ảo + nút (điện thoại)
+// ============================================================================
+const cam = { yaw: Math.PI, pitch: 0.22, dist: 7, fov: 60, target: new THREE.Vector3(), idle: 9 };
+const input = { mx: 0, my: 0, space: false, shift: false, mouse: false, btnA: false, btnB: false, jump: false, interact: false };
+const keys = {};
+const stick = { x: 0, y: 0 };
+let jumpQ = false, interactQ = false;
+function look(dx, dy, s) {
+  cam.yaw -= dx * s; cam.pitch = clamp(cam.pitch + dy * s, -1.1, 1.4); cam.idle = 0;
+}
+addEventListener('keydown', (e) => {
+  if (e.repeat) return;
+  keys[e.code] = true;
+  if (e.code === 'Space') jumpQ = true;
+  if (e.code === 'KeyE') interactQ = true;
+  if (e.code === 'KeyM') game.toggleMusic?.();
+  if (e.code === 'KeyR') game.nextTrack?.();
+  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
+});
+addEventListener('keyup', (e) => { keys[e.code] = false; });
+addEventListener('blur', () => { for (const k in keys) keys[k] = false; input.mouse = false; });
+
+const canvas = $('scene');
+const locked = () => document.pointerLockElement === canvas;
+canvas.addEventListener('click', () => { if (!isTouch && !locked()) canvas.requestPointerLock?.(); });
+addEventListener('mousemove', (e) => { if (locked()) look(e.movementX, e.movementY, 0.0024); });
+addEventListener('mousedown', (e) => { if (locked() && e.button === 0) input.mouse = true; });
+addEventListener('mouseup', (e) => { if (e.button === 0) input.mouse = false; });
+canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+// Vuốt trên màn hình (hoặc kéo chuột khi chưa khoá con trỏ) để xoay camera
+let lookId = null, lookX = 0, lookY = 0;
+canvas.addEventListener('pointerdown', (e) => { if (locked() || lookId !== null) return; lookId = e.pointerId; lookX = e.clientX; lookY = e.clientY; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove', (e) => { if (e.pointerId !== lookId) return; look(e.clientX - lookX, e.clientY - lookY, 0.006); lookX = e.clientX; lookY = e.clientY; });
+const endLook = (e) => { if (e.pointerId === lookId) lookId = null; };
+canvas.addEventListener('pointerup', endLook); canvas.addEventListener('pointercancel', endLook);
+
+// Joystick ảo: chạm vào đâu ở nửa trái thì tâm joystick nhảy tới đó
+{
+  const zone = $('stickZone'), base = $('stickBase'), knob = $('stickKnob'), R = 52;
+  let id = null, ox = 0, oy = 0;
+  const reset = () => { id = null; stick.x = stick.y = 0; base.style.left = base.style.top = ''; knob.style.transform = ''; };
+  zone.addEventListener('pointerdown', (e) => {
+    if (id !== null) return;
+    id = e.pointerId; zone.setPointerCapture(id);
+    const r = zone.getBoundingClientRect(); ox = e.clientX; oy = e.clientY;
+    base.style.left = (ox - r.left) + 'px'; base.style.top = (oy - r.top) + 'px';
+  });
+  zone.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== id) return;
+    let dx = e.clientX - ox, dy = e.clientY - oy; const d = Math.hypot(dx, dy);
+    if (d > R) { dx *= R / d; dy *= R / d; }
+    stick.x = dx / R; stick.y = -dy / R; knob.style.transform = `translate(${dx}px,${dy}px)`;
+  });
+  zone.addEventListener('pointerup', (e) => { if (e.pointerId === id) reset(); });
+  zone.addEventListener('pointercancel', (e) => { if (e.pointerId === id) reset(); });
+}
+// Nút giữ (đu dây / nhảy / bay lên / hạ xuống)
+function holdButton(el, key, onDown) {
+  el.addEventListener('pointerdown', (e) => { e.preventDefault(); el.setPointerCapture(e.pointerId); input[key] = true; el.classList.add('on'); onDown?.(); });
+  const up = () => { input[key] = false; el.classList.remove('on'); };
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+}
+holdButton($('btnA'), 'btnA');
+holdButton($('btnB'), 'btnB', () => { jumpQ = true; });
+$('btnE').addEventListener('pointerdown', (e) => { e.preventDefault(); interactQ = true; });
+$('help').textContent = 'WASD di chuyển · Chuột xoay camera · Space nhảy · Giữ chuột trái / Shift đu dây · E lên/xuống xe · M nhạc';
+
+sys.input = () => {
+  const kx = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
+  const ky = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0);
+  input.mx = clamp(kx + stick.x, -1, 1); input.my = clamp(ky + stick.y, -1, 1);
+  input.space = !!keys.Space; input.shift = !!(keys.ShiftLeft || keys.ShiftRight);
+  input.jump = jumpQ; input.interact = interactQ; jumpQ = interactQ = false;
 };
+
+// ============================================================================
+// 6. NẠP MODEL .glb — thiếu file thì dùng model tạm bằng hình khối
+// ============================================================================
+const loader = new GLTFLoader();
+// Trả về một Group rỗng ngay lập tức; model thật (hoặc model tạm) được gắn vào sau
+function loadModel(cfg, makeFallback, onReady) {
+  const holder = new THREE.Group();
+  holder.rotation.order = 'YXZ';
+  loader.load(cfg.url, (gltf) => {
+    const m = gltf.scene;
+    m.scale.setScalar(cfg.scale); m.rotation.y = cfg.rotY * Math.PI / 180; m.position.y = cfg.yOffset;
+    holder.add(m);
+    const size = new THREE.Box3().setFromObject(m).getSize(new THREE.Vector3());
+    console.log(`[model] ${cfg.url}: rộng ${size.x.toFixed(2)} × cao ${size.y.toFixed(2)} × dài ${size.z.toFixed(2)} m,`,
+      'animation:', gltf.animations.map((c) => c.name).join(', ') || '(không có)');
+    onReady(m, gltf.animations, false);
+  }, undefined, () => {
+    console.log(`[model] chưa có ${cfg.url} → dùng model tạm`);
+    const m = makeFallback(); holder.add(m); onReady(m, [], true);
+  });
+  return holder;
+}
+const lambert = (color, extra) => new THREE.MeshLambertMaterial({ color, ...extra });
+const blobMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3, depthWrite: false });
+const blobGeo = new THREE.CircleGeometry(1, 16).rotateX(-Math.PI / 2);
+
+// ============================================================================
+// 7. VA CHẠM AABB — dùng chung cho nhân vật và xe
+// ============================================================================
+// body: { pos, vel, r }. Sau khi gọi: body.grounded, body.wall (pháp tuyến tường vừa chạm), body.floorY
+function moveBody(b, dt) {
+  const p = b.pos, r = b.r;
+  p.addScaledVector(b.vel, dt);
+  const lim = HALF + 80; p.x = clamp(p.x, -lim, lim); p.z = clamp(p.z, -lim, lim);
+  let floor = groundY(p.x, p.z);
+  b.wall = null;
+  const tol = Math.max(0.6, -b.vel.y * dt + 0.2);    // rơi nhanh vẫn bắt được mặt sân thượng
+  const list = nearBoxes(p.x, p.z, r);
+  for (let i = 0; i < list.length; i++) {
+    const o = list[i];
+    if (p.x < o.minX - r || p.x > o.maxX + r || p.z < o.minZ - r || p.z > o.maxZ + r) continue;
+    if (p.y >= o.top - tol) {                        // ở phía trên: nóc nhà là sàn
+      if (p.x > o.minX && p.x < o.maxX && p.z > o.minZ && p.z < o.maxZ) floor = Math.max(floor, o.top);
+      continue;
+    }
+    // ở bên hông: đẩy ra theo hướng lún ít nhất, bỏ phần vận tốc đâm vào tường
+    const d0 = p.x - (o.minX - r), d1 = (o.maxX + r) - p.x, d2 = p.z - (o.minZ - r), d3 = (o.maxZ + r) - p.z;
+    const m = Math.min(d0, d1, d2, d3);
+    let nx = 0, nz = 0;
+    if (m === d0) { p.x = o.minX - r; nx = -1; } else if (m === d1) { p.x = o.maxX + r; nx = 1; }
+    else if (m === d2) { p.z = o.minZ - r; nz = -1; } else { p.z = o.maxZ + r; nz = 1; }
+    const vn = b.vel.x * nx + b.vel.z * nz;
+    if (vn < 0) { b.vel.x -= nx * vn; b.vel.z -= nz * vn; }
+    b.wall = { nx, nz, top: o.top };
+  }
+  b.floorY = floor;
+  if (p.y <= floor + 1e-4) { p.y = floor; if (b.vel.y < 0) b.vel.y = 0; b.grounded = true; } else b.grounded = false;
+}
+
+// ============================================================================
+// 8. NHÂN VẬT — chạy, nhảy, chạy tường, animation
+// ============================================================================
+const hero = {
+  pos: new THREE.Vector3(roadC(BRIDGES[1]) + 3, 0, roadC(RIVER_ROW - 1)), vel: new THREE.Vector3(), r: 0.45,
+  grounded: true, wall: null, floorY: 0, onWall: false, inCar: false, rope: null, yaw: Math.PI, tilt: 0,
+  mixer: null, actions: {}, action: null, animName: '', parts: null, phase: 0,
+};
+game.hero = hero;
+
+// Model tạm: người hùng đeo mặt nạ, ghép từ capsule. Tay chân có khớp để lắc lư bằng code
+function makeHeroFallback() {
+  const c = CONFIG.hero.colors, suit = lambert(c.suit), acc = lambert(c.accent), g = new THREE.Group();
+  const add = (geo, mat, x, y, z, parent = g) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); parent.add(m); return m; };
+  add(new THREE.CapsuleGeometry(0.23, 0.48, 4, 10), suit, 0, 1.15, 0);
+  add(new THREE.BoxGeometry(0.5, 0.09, 0.42), acc, 0, 0.9, 0);                    // thắt lưng
+  add(new THREE.SphereGeometry(0.2, 12, 10), suit, 0, 1.7, 0);
+  for (const s of [-1, 1]) add(new THREE.SphereGeometry(0.07, 8, 6), new THREE.MeshBasicMaterial({ color: c.visor }), s * 0.085, 1.72, 0.155).scale.set(1, 0.7, 0.5);
+  const limb = (x, y, len, rad, boot) => {
+    const pivot = new THREE.Group(); pivot.position.set(x, y, 0); g.add(pivot);
+    add(new THREE.CapsuleGeometry(rad, len, 4, 8), suit, 0, -len / 2 - rad * 0.5, 0, pivot);
+    add(new THREE.SphereGeometry(rad * 1.25, 8, 6), acc, 0, -len - rad, boot ? 0.03 : 0, pivot);   // găng / giày
+    return pivot;
+  };
+  g.userData.parts = { armL: limb(0.33, 1.45, 0.5, 0.07), armR: limb(-0.33, 1.45, 0.5, 0.07), legL: limb(0.12, 0.86, 0.6, 0.09, true), legR: limb(-0.12, 0.86, 0.6, 0.09, true) };
+  return g;
+}
+
+hero.holder = loadModel(CONFIG.hero, makeHeroFallback, (model, clips, isFallback) => {
+  hero.parts = isFallback ? model.userData.parts : null;
+  if (!clips.length) return;
+  hero.mixer = new THREE.AnimationMixer(model);
+  // Tìm clip theo tên trong CONFIG (không phân biệt hoa thường, chấp nhận dạng "Armature|run")
+  for (const [key, want] of Object.entries(CONFIG.hero.anim)) {
+    const w = want.toLowerCase();
+    const clip = clips.find((c) => c.name.toLowerCase() === w) || clips.find((c) => c.name.toLowerCase().split(/[|.]/).includes(w));
+    if (!clip) { console.log(`[model] thiếu animation "${want}" → bỏ qua`); continue; }
+    hero.actions[key] = hero.mixer.clipAction(clip);
+  }
+  if (hero.actions.jump) { hero.actions.jump.setLoop(THREE.LoopOnce); hero.actions.jump.clampWhenFinished = true; }
+  hero.animName = ''; // để lần cập nhật tới chọn lại clip
+});
+scene.add(hero.holder);
+const heroBlob = new THREE.Mesh(blobGeo, blobMat); heroBlob.scale.setScalar(0.55); scene.add(heroBlob);
+
+// Chuyển animation có crossfade. Clip thiếu thì giữ nguyên clip đang chạy
+function playAnim(name) {
+  if (hero.animName === name) return;
+  hero.animName = name;
+  const next = hero.actions[name], prev = hero.action;
+  if (!next || next === prev) return;
+  next.reset().setEffectiveWeight(1).fadeIn(CONFIG.hero.crossfade).play();
+  if (prev) prev.fadeOut(CONFIG.hero.crossfade);
+  hero.action = next;
+}
+// Model tạm không có clip: lắc tay chân theo trạng thái
+function animateFallback(name, dt, speed) {
+  const p = hero.parts; if (!p) return;
+  hero.phase += dt * (4 + speed * 1.1);
+  const s = Math.sin(hero.phase);
+  let aL = 0, aR = 0, lL = 0, lR = 0, zz = 0.08;
+  if (name === 'run') { aL = s; aR = -s; lL = -s * 0.9; lR = s * 0.9; }
+  else if (name === 'swing') { aL = -2.7; aR = -0.4; lL = 0.5; lR = 0.15; }
+  else if (name === 'jump') { aL = aR = -2.2; lL = -0.5; lR = 0.3; }
+  else if (name === 'fall') { aL = aR = -1.2; zz = 0.9; lL = 0.3; lR = -0.25; }
+  const k = 1 - Math.exp(-14 * dt);
+  p.armL.rotation.x = lerp(p.armL.rotation.x, aL, k); p.armR.rotation.x = lerp(p.armR.rotation.x, aR, k);
+  p.legL.rotation.x = lerp(p.legL.rotation.x, lL, k); p.legR.rotation.x = lerp(p.legR.rotation.x, lR, k);
+  p.armL.rotation.z = lerp(p.armL.rotation.z, zz, k); p.armR.rotation.z = lerp(p.armR.rotation.z, -zz, k);
+}
+
+// ============================================================================
+// 9. ĐU DÂY — chọn điểm neo, vật lý con lắc, vẽ dây
+// ============================================================================
+// Tìm điểm neo: trên mép/mặt tường toà nhà, cao hơn nhân vật, gần nhất phía trước (fx, fz là hướng nhìn)
+function findAnchor(pos, fx, fz, out) {
+  const R = CONFIG.rope, list = nearBoxes(pos.x, pos.z, R.maxLen);
+  const px = pos.x + fx * 18, pz = pos.z + fz * 18;
+  let best = Infinity;
+  for (let i = 0; i < list.length; i++) {
+    const o = list[i];
+    if (o.top - pos.y < R.minRise) continue;
+    let x = clamp(px, o.minX, o.maxX), z = clamp(pz, o.minZ, o.maxZ);
+    if (x === px && z === pz) {                      // điểm ngắm nằm trong chân toà nhà → dời ra mặt tường gần nhất
+      const d0 = x - o.minX, d1 = o.maxX - x, d2 = z - o.minZ, d3 = o.maxZ - z, m = Math.min(d0, d1, d2, d3);
+      if (m === d0) x = o.minX; else if (m === d1) x = o.maxX; else if (m === d2) z = o.minZ; else z = o.maxZ;
+    }
+    const y = Math.min(o.top, pos.y + R.maxRise);
+    const dx = x - pos.x, dy = y - pos.y, dz = z - pos.z, h = Math.hypot(dx, dz), d = Math.hypot(h, dy);
+    if (d > R.maxLen || d < R.minLen) continue;
+    const dot = h > 1 ? (dx * fx + dz * fz) / h : 1;
+    if (dot < 0.15) continue;                        // chỉ lấy điểm phía trước
+    const cost = d - dy * 0.5 + (1 - dot) * 25;
+    if (cost < best) { best = cost; out.set(x, y, z); }
+  }
+  return best < Infinity;
+}
+
+const ROPE_N = 14;
+const ropeLine = new THREE.Line(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(ROPE_N * 3), 3)),
+  new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.92 }));
+ropeLine.frustumCulled = false; ropeLine.visible = false; scene.add(ropeLine);
+const HAND_Y = 1.4;
+function drawRope() {
+  ropeLine.visible = !!hero.rope;
+  if (!hero.rope) return;
+  const a = hero.rope.anchor, p = hero.pos, arr = ropeLine.geometry.attributes.position;
+  const dist = Math.hypot(a.x - p.x, a.y - p.y - HAND_Y, a.z - p.z);
+  const sag = Math.max(0, hero.rope.len - dist) * 0.6 + 0.12;   // dây chùng thì võng nhiều hơn
+  for (let i = 0; i < ROPE_N; i++) {
+    const t = i / (ROPE_N - 1);
+    arr.setXYZ(i, lerp(p.x, a.x, t), lerp(p.y + HAND_Y, a.y, t) - sag * 4 * t * (1 - t), lerp(p.z, a.z, t));
+  }
+  arr.needsUpdate = true;
+}
+
+const wish = new THREE.Vector3(), _anchor = new THREE.Vector3();
+function heroStep(h, jump) {
+  const M = CONFIG.heroMove, R = CONFIG.rope, v = hero.vel, w = hero.wall;
+  const into = w ? -(wish.x * w.nx + wish.z * w.nz) : 0;
+  hero.onWall = false;
+  if (hero.rope) {                                   // --- đang đu: trọng lực + đạp nhẹ theo hướng bấm, dây rút ngắn dần
+    v.y -= CONFIG.gravity * h; v.addScaledVector(wish, R.pump * h);
+    const rp = hero.rope; rp.rate = rp.len > rp.clear ? R.zip : R.reel;      // dây còn dài quá thì rút nhanh
+    rp.len = Math.max(R.minLen, rp.len - rp.rate * h);
+  } else if (w && into > 0.5) {                      // --- chạy trên tường: bấm hướng vào tường để chạy lên
+    const tx = -w.nz, tz = w.nx, along = wish.x * tx + wish.z * tz;
+    v.x = tx * along * M.run * 0.8 - w.nx * 2; v.z = tz * along * M.run * 0.8 - w.nz * 2;   // -n*2: giữ dính tường
+    v.y = damp(v.y, M.wallClimb * into, 10, h);
+    hero.onWall = true; hero.wallYaw = Math.atan2(-w.nx, -w.nz);
+    if (jump) { v.x = w.nx * M.wallJump; v.z = w.nz * M.wallJump; v.y = M.jump; hero.onWall = false; }
+  } else if (hero.grounded) {                        // --- trên mặt đất / sân thượng
+    v.x = damp(v.x, wish.x * M.run, 14, h); v.z = damp(v.z, wish.z * M.run, 14, h);
+    v.y -= CONFIG.gravity * h;
+    if (jump) v.y = M.jump;
+  } else {                                           // --- trên không: giữ quán tính, lái nhẹ
+    const hs = Math.hypot(v.x, v.z);
+    if (hs < M.run || v.x * wish.x + v.z * wish.z < 0) v.addScaledVector(wish, M.airAccel * h);
+    v.y -= CONFIG.gravity * h;
+  }
+  if (v.lengthSq() > 75 * 75) v.setLength(75);
+  moveBody(hero, h);
+  if (hero.rope) {                                   // ràng buộc con lắc: tay không được xa điểm neo quá chiều dài dây
+    const a = hero.rope.anchor, p = hero.pos;
+    const dx = p.x - a.x, dy = p.y + HAND_Y - a.y, dz = p.z - a.z, d = Math.hypot(dx, dy, dz);
+    if (d > hero.rope.len) {
+      const nx = dx / d, ny = dy / d, nz = dz / d, pull = d - hero.rope.len;
+      p.x -= nx * pull; p.y -= ny * pull; p.z -= nz * pull;
+      const vn = v.x * nx + v.y * ny + v.z * nz;
+      const ex = vn + hero.rope.rate;                                   // dây căng đang rút → bị kéo về phía điểm neo
+      if (ex > 0) { v.x -= nx * ex; v.y -= ny * ex; v.z -= nz * ex; }
+    }
+  }
+}
+
+sys.hero = (dt) => {
+  if (hero.inCar) { ropeLine.visible = false; return; }
+  // hướng di chuyển theo camera
+  const fx = -Math.sin(cam.yaw), fz = -Math.cos(cam.yaw);
+  wish.set(fx * input.my + -fz * input.mx, 0, fz * input.my + fx * input.mx);
+  if (wish.lengthSq() > 1) wish.normalize();
+
+  const swingHeld = input.shift || input.mouse || input.btnA;
+  if (swingHeld && !hero.rope && findAnchor(hero.pos, fx, fz, _anchor)) {       // bắn dây
+    const a = _anchor.clone();
+    const len = Math.hypot(a.x - hero.pos.x, a.y - hero.pos.y - HAND_Y, a.z - hero.pos.z);
+    // clear: chiều dài để điểm thấp nhất của vòng đu vẫn cách mặt đất vài mét
+    hero.rope = { anchor: a, len, rate: 0, clear: Math.max(CONFIG.rope.minLen, a.y - hero.floorY - 4) };
+    if (hero.grounded) hero.vel.y = Math.max(hero.vel.y, 5);
+    hero.vel.x += fx * 4; hero.vel.z += fz * 4;
+  } else if (!swingHeld && hero.rope) {                                          // thả dây: bay tiếp theo quán tính
+    hero.rope = null;
+    if (hero.vel.y > -4) hero.vel.y += CONFIG.rope.releaseBoost;
+  }
+  heroStep(dt / 2, input.jump); heroStep(dt / 2, false);                         // 2 bước nhỏ cho ổn định
+
+  // hướng mặt + animation
+  const v = hero.vel, hs = Math.hypot(v.x, v.z);
+  let face = hero.yaw, tilt = 0;
+  if (hero.onWall) { face = hero.wallYaw; tilt = -1.2; }
+  else if (hs > 1) { face = Math.atan2(v.x, v.z); if (hero.rope) tilt = 0.35; }
+  let dy = face - hero.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+  hero.yaw += dy * (1 - Math.exp(-12 * dt)); hero.tilt = damp(hero.tilt, tilt, 10, dt);
+  hero.holder.position.copy(hero.pos); hero.holder.rotation.set(hero.tilt, hero.yaw, 0);
+
+  const name = hero.rope ? 'swing' : hero.onWall ? 'run' : hero.grounded ? (hs > 1.5 ? 'run' : 'idle') : (v.y > 1 ? 'jump' : 'fall');
+  playAnim(name);
+  if (hero.mixer) { if (hero.action) hero.action.timeScale = name === 'run' ? clamp(hs / CONFIG.heroMove.run, 0.6, 1.4) : 1; hero.mixer.update(dt); }
+  animateFallback(name, dt, hs);
+  drawRope();
+  heroBlob.position.set(hero.pos.x, hero.floorY + 0.06, hero.pos.z);
+  heroBlob.material.opacity = 0.3;
+  heroBlob.visible = hero.pos.y - hero.floorY < 12;
+};
+
+// ============================================================================
+// 12. CAMERA — góc nhìn thứ ba, bám mượt, không xuyên tường
+// ============================================================================
+// Khoảng cách từ điểm o theo hướng d tới toà nhà gần nhất (tối đa max)
+function rayBoxes(o, d, max) {
+  const list = nearBoxes(o.x, o.z, max);
+  let best = max;
+  for (let i = 0; i < list.length; i++) {
+    const b = list[i];
+    let t0 = 0, t1 = best;
+    for (const [oo, dd, lo, hi] of [[o.x, d.x, b.minX - 0.3, b.maxX + 0.3], [o.y, d.y, -5, b.top + 0.3], [o.z, d.z, b.minZ - 0.3, b.maxZ + 0.3]]) {
+      if (Math.abs(dd) < 1e-6) { if (oo < lo || oo > hi) { t0 = Infinity; break; } continue; }
+      let a = (lo - oo) / dd, c = (hi - oo) / dd; if (a > c) [a, c] = [c, a];
+      t0 = Math.max(t0, a); t1 = Math.min(t1, c);
+      if (t0 > t1) { t0 = Infinity; break; }
+    }
+    if (t0 < best) best = t0;
+  }
+  return best;
+}
+const _dir = new THREE.Vector3();
+sys.camera = (dt) => {
+  const drive = hero.inCar && game.car, body = drive ? game.car : hero;
+  const speed = body.vel.length();
+  cam.idle += dt;
+  if (drive && cam.idle > 1.2 && speed > 3) {         // trong xe: camera tự vòng ra sau đuôi xe
+    let d = game.car.yaw + Math.PI - cam.yaw; d = Math.atan2(Math.sin(d), Math.cos(d));
+    cam.yaw += d * (1 - Math.exp(-2.5 * dt));
+  }
+  const ty = body.pos.y + (drive ? 1.3 : 1.5);
+  cam.target.set(body.pos.x, Math.abs(ty - cam.target.y) > 20 ? ty : damp(cam.target.y, ty, 14, dt), body.pos.z);
+  const want = (drive ? 8.5 : 6.5) + Math.min(speed, 60) * 0.11;   // bay nhanh thì camera kéo xa
+  _dir.set(Math.sin(cam.yaw) * Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch));
+  const free = Math.max(1, rayBoxes(cam.target, _dir, want) - 0.3);
+  cam.dist = free < cam.dist ? free : damp(cam.dist, free, 4, dt);  // lùi vào ngay, kéo ra từ từ
+  camera.position.copy(cam.target).addScaledVector(_dir, cam.dist);
+  camera.position.y = Math.max(camera.position.y, groundY(camera.position.x, camera.position.z) + 0.4);
+  camera.lookAt(cam.target);
+  const fov = 60 + Math.min(speed, 60) * 0.4;
+  if (Math.abs(fov - cam.fov) > 0.05) { cam.fov = damp(cam.fov, fov, 4, dt); camera.fov = cam.fov; camera.updateProjectionMatrix(); }
+};
+game.cam = cam; game.input = input; game.findAnchor = findAnchor; game.groundY = groundY; game.allBoxes = allBoxes;
 
 // ============================================================================
 // 14. VÒNG LẶP CHÍNH + tự hạ độ phân giải khi fps thấp
@@ -469,6 +836,17 @@ function frame() {
     if (game.fps < 45 && pixelRatio > 0.75 && !document.hidden) { pixelRatio = Math.max(0.75, pixelRatio - 0.25); renderer.setPixelRatio(pixelRatio); resize(); }
   }
 }
+// Chạy n bước mô phỏng không cần vẽ (dùng cho kiểm thử tự động)
+let simNow = 0;
+game.step = (n, dt = 1 / 60) => { for (let i = 0; i < n; i++) { simNow += dt; for (const k of ORDER) sys[k]?.(dt, simNow); } };
+
+// Màn hình bắt đầu: lần chạm đầu tiên cũng là lúc được phép bật âm thanh
+$('start').addEventListener('click', () => {
+  $('start').hidden = true;
+  game.startAudio?.();
+  if (!isTouch) canvas.requestPointerLock?.();
+});
+
 applyEnv(game.time);
 frame();
 game.ready = true;
