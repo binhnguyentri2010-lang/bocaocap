@@ -4,6 +4,10 @@ Phố phường Việt Nam 3D để thư giãn buổi tối: **hoàng hôn** / *
 
 Không cần cài đặt hay build — chỉ là HTML + JavaScript dùng [three.js](https://threejs.org) (tải từ CDN).
 
+## Game đu dây hoàng hôn (`swing/`)
+
+Game 3D riêng, gói trong một file [`swing/index.html`](swing/index.html): đu dây giữa các toà nhà, chạy trên tường, lái và bay chiếc roadster, chu kỳ ngày → đêm 5 phút, nhạc lo-fi tự tạo. Chạy server như bên dưới rồi mở `http://localhost:8000/swing/`. Model Blender đặt trong [`swing/models/`](swing/models/README.md).
+
 ## Chạy thử trên máy
 
 Trình duyệt chặn ES module khi mở bằng `file://`, nên cần một web server nhỏ:
