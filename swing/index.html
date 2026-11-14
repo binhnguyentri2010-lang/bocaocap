@@ -1,0 +1,1171 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="theme-color" content="#2a1f5c" />
+<title>Đu dây hoàng hôn</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #1b1438; color: #fff;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  canvas#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  .ui { position: fixed; z-index: 5; }
+  button { font: inherit; color: #fff; border: 0; touch-action: none; -webkit-tap-highlight-color: transparent; }
+  .glass { background: rgba(30, 20, 60, .45); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, .22); }
+  .glass.on, .glass:active { background: rgba(255, 150, 90, .55); }
+
+  /* Màn hình bắt đầu */
+  #start { inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; text-align: center; padding: 24px; cursor: pointer;
+    background: linear-gradient(#2a1f5ccc, #e0567a99 70%, #ff8a4c99); }
+  #start h1 { margin: 0; font-size: clamp(28px, 6vw, 54px); font-weight: 700; letter-spacing: .02em; }
+  #start p { margin: 0; opacity: .9; max-width: 34em; line-height: 1.5; }
+  #start .go { margin-top: 8px; padding: 14px 34px; border-radius: 999px; font-size: 18px; }
+
+  /* Góc trên phải: nhạc + radio */
+  #top { top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); display: flex; gap: 8px; }
+  #top button { width: 48px; height: 48px; border-radius: 50%; font-size: 20px; }
+  #toast { top: max(66px, calc(env(safe-area-inset-top) + 56px)); right: 12px; padding: 6px 12px; border-radius: 10px;
+    font-size: 14px; opacity: 0; transition: opacity .4s; pointer-events: none; }
+  #toast.show { opacity: 1; }
+
+  /* Gợi ý phím (laptop) */
+  #help { left: 12px; bottom: 10px; font-size: 13px; opacity: .75; line-height: 1.5; pointer-events: none;
+    text-shadow: 0 1px 3px #000a; }
+
+  /* Nút lên/xuống xe: hiện ở cả laptop lẫn điện thoại khi đứng gần xe */
+  #btnE { left: 50%; bottom: max(26px, env(safe-area-inset-bottom)); transform: translateX(-50%);
+    padding: 14px 26px; border-radius: 999px; font-size: 17px; }
+
+  /* Điều khiển cảm ứng */
+  #stickZone { left: 0; bottom: 0; width: 42%; height: 60%; touch-action: none; }
+  #stickBase { position: absolute; width: 124px; height: 124px; margin: -62px 0 0 -62px; border-radius: 50%;
+    left: 96px; top: calc(100% - 110px); pointer-events: none; }
+  #stickKnob { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px;
+    border-radius: 50%; background: rgba(255, 255, 255, .55); }
+  #pad { right: max(14px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom));
+    width: 190px; height: 190px; pointer-events: none; }
+  #pad button { position: absolute; border-radius: 50%; pointer-events: auto; font-size: 15px; font-weight: 600; line-height: 1.15; }
+  #btnA { right: 0; bottom: 0; width: 112px; height: 112px; }
+  #btnB { right: 106px; bottom: 96px; width: 84px; height: 84px; }
+  .touch-only { display: none; }
+  body.touch .touch-only { display: block; }
+  body.touch #help { display: none; }
+  [hidden] { display: none !important; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<div id="start" class="ui">
+  <h1>Đu dây hoàng hôn</h1>
+  <p>Một thành phố yên bình. Không kẻ địch, không tính giờ, không thua.<br>Đu dây, chạy trên tường, lái (và bay) chiếc roadster.</p>
+  <button class="go glass">Chạm để bắt đầu</button>
+</div>
+
+<div id="top" class="ui">
+  <button id="btnRadio" class="glass" title="Đổi bài (R)" hidden>📻</button>
+  <button id="btnMusic" class="glass on" title="Bật/tắt nhạc (M)">♪</button>
+</div>
+<div id="toast" class="ui glass"></div>
+
+<div id="help" class="ui"></div>
+<button id="btnE" class="ui glass" hidden>Lên xe (E)</button>
+
+<div id="stickZone" class="ui touch-only">
+  <div id="stickBase" class="glass"><div id="stickKnob"></div></div>
+</div>
+<div id="pad" class="ui touch-only">
+  <button id="btnB" class="glass">Nhảy</button>
+  <button id="btnA" class="glass">Đu dây</button>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+// ============================================================================
+// 1. CONFIG — chỉnh ở đây khi model xuất từ Blender bị lệch
+// ============================================================================
+const CONFIG = {
+  // Nhân vật: models/hero.glb (Armature + animation idle, run, jump, swing, fall)
+  hero: {
+    url: 'models/hero.glb',
+    scale: 1,          // phóng to / thu nhỏ. Game coi nhân vật cao khoảng 1.8 m
+    rotY: 0,           // xoay quanh trục đứng (độ). Mặt nhân vật phải nhìn về +Z; quay lưng thì đặt 180
+    yOffset: 0,        // nâng/hạ (m) nếu chân bị lún hoặc lơ lửng
+    crossfade: 0.25,   // thời gian chuyển mượt giữa 2 animation (giây)
+    anim: { idle: 'idle', run: 'run', jump: 'jump', swing: 'swing', fall: 'fall' }, // tên clip trong file
+    colors: { suit: 0x1f9e8f, accent: 0xff8a3c, visor: 0xf4f1e8 },                  // màu model tạm
+  },
+  // Xe: models/car.glb (4 bánh là object riêng)
+  car: {
+    url: 'models/car.glb',
+    scale: 1,
+    rotY: 0,           // đầu xe phải hướng về +Z; ngược thì đặt 180, ngang thì 90 / -90
+    yOffset: 0,
+    wheels: { FL: 'wheel_FL', FR: 'wheel_FR', RL: 'wheel_RL', RR: 'wheel_RR' },
+    wheelRadius: 0.36, // bán kính bánh (m) sau khi đã nhân scale — quyết định bánh quay nhanh chậm
+    wheelAxis: 'x',    // trục ngang của xe trong file ('x' hoặc 'z'); bánh quay sai trục thì đổi
+    wheelSpinDir: 1,   // bánh quay ngược thì đặt -1
+    headlights: [[0.72, 0.62, 2.05], [-0.72, 0.62, 2.05]],  // vị trí đèn pha (x, y, z) theo thân xe
+    taillights: [[0.7, 0.72, -2.05], [-0.7, 0.72, -2.05]],
+    color: 0xe9e4dc,   // màu model tạm
+  },
+  city: { blocks: 10, seed: 20261114 },
+  dayLength: 300,      // một vòng ngày → đêm → ngày (giây)
+  startTime: 0,        // 0 = hoàng hôn, 0.3 = đêm, 0.8 = ban ngày
+  gravity: 26,
+  heroMove: { run: 9, jump: 10, airAccel: 12, wallClimb: 11, wallJump: 11 },
+  // zip: tốc độ rút dây lúc mới bắn (kéo người lên khỏi mặt đất); reel: rút chậm khi đang đu; pump: lực đạp theo hướng bấm
+  rope: { maxLen: 75, minLen: 8, minRise: 6, maxRise: 45, zip: 18, reel: 3, pump: 7, releaseBoost: 4 },
+  carMove: { accel: 12, maxSpeed: 42, flySpeed: 60, reverse: 12, grip: 5, flyGrip: 2.5, lift: 14, ceiling: 170 },
+  npc: { cars: 20, people: 40 },   // giảm nếu máy yếu
+  maxPixelRatio: 1.5,
+};
+
+// ============================================================================
+// 2. TIỆN ÍCH
+// ============================================================================
+const $ = (id) => document.getElementById(id);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const damp = (a, b, rate, dt) => lerp(a, b, 1 - Math.exp(-rate * dt)); // nội suy mượt không phụ thuộc fps
+// Bộ sinh số ngẫu nhiên có seed: thành phố lần nào mở cũng giống nhau
+function mulberry32(a) {
+  return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+const rng = mulberry32(CONFIG.city.seed);
+const rr = (a, b) => a + (b - a) * rng();
+const pick = (arr) => arr[Math.floor(rng() * arr.length)];
+const params = new URLSearchParams(location.search);
+const isTouch = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 1;
+document.body.classList.toggle('touch', isTouch);
+
+// Các hệ thống đăng ký hàm cập nhật vào đây; vòng lặp chính gọi theo thứ tự ORDER
+const sys = {};
+const ORDER = ['input', 'hero', 'car', 'npc', 'camera', 'env', 'audio', 'ui'];
+const game = (window.__game = { CONFIG, sys, time: CONFIG.startTime, night: 0 });
+
+// ============================================================================
+// 3. RENDERER, SCENE, SƯƠNG MÙ
+// ============================================================================
+const renderer = new THREE.WebGLRenderer({ canvas: $('scene'), antialias: !isTouch, powerPreference: 'high-performance' });
+let pixelRatio = Math.min(devicePixelRatio || 1, CONFIG.maxPixelRatio);
+renderer.setPixelRatio(pixelRatio);
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0xc9705e, 50, 520);
+const camera = new THREE.PerspectiveCamera(60, 1, 0.5, 1400);
+camera.position.set(40, 60, 150);
+function resize() {
+  renderer.setSize(innerWidth, innerHeight, false);
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+
+const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
+const sun = new THREE.DirectionalLight(0xffffff, 2);
+scene.add(hemi, sun, sun.target);
+
+// ============================================================================
+// 4. THÀNH PHỐ — lưới khu nhà, đường, vỉa hè, công viên, sông, cầu
+// ============================================================================
+const N = CONFIG.city.blocks;
+const BLOCK = 44, ROAD = 14, PITCH = BLOCK + ROAD;
+const HALF = (N * PITCH + ROAD) / 2;               // nửa bề rộng thành phố
+const CURB = 0.25;                                 // vỉa hè cao hơn mặt đường
+const roadC = (i) => -HALF + ROAD / 2 + i * PITCH; // tim đường thứ i (0..N)
+const blockMin = (k) => roadC(k) + ROAD / 2;       // mép khu nhà thứ k (0..N-1)
+const RIVER_ROW = Math.floor(N / 2);               // hàng khu nhà nhường chỗ cho sông
+const RZ0 = blockMin(RIVER_ROW), RZ1 = RZ0 + BLOCK;
+const RIVER_BED = -1.1, WATER_Y = -0.5;
+const BRIDGES = [2, Math.floor(N / 2), N - 2];     // các đường dọc có cầu qua sông
+const onBridge = (x) => BRIDGES.some((b) => Math.abs(x - roadC(b)) < ROAD / 2);
+
+// Độ cao mặt đất tại (x, z): lòng sông, mặt cầu, vỉa hè hoặc mặt đường
+function groundY(x, z) {
+  if (z > RZ0 && z < RZ1) return onBridge(x) ? 0 : RIVER_BED;
+  const u = x + HALF, v = z + HALF;
+  const k = Math.floor(u / PITCH), j = Math.floor(v / PITCH);
+  const inX = k >= 0 && k < N && u - k * PITCH > ROAD;
+  const inZ = j >= 0 && j < N && v - j * PITCH > ROAD;
+  return inX && inZ ? CURB : 0;
+}
+
+// Hộp va chạm AABB của toà nhà, chia theo khu nhà để chỉ xét vài hộp ở gần
+const blockBoxes = Array.from({ length: N * N }, () => []);
+const allBoxes = [];
+const _near = [];
+function nearBoxes(x, z, r) {
+  _near.length = 0;
+  const k0 = clamp(Math.floor((x - r + HALF) / PITCH), 0, N - 1), k1 = clamp(Math.floor((x + r + HALF) / PITCH), 0, N - 1);
+  const j0 = clamp(Math.floor((z - r + HALF) / PITCH), 0, N - 1), j1 = clamp(Math.floor((z + r + HALF) / PITCH), 0, N - 1);
+  for (let j = j0; j <= j1; j++) for (let k = k0; k <= k1; k++) {
+    const list = blockBoxes[j * N + k];
+    for (let i = 0; i < list.length; i++) _near.push(list[i]);
+  }
+  return _near;
+}
+
+const dummy = new THREE.Object3D();
+const col = new THREE.Color();
+const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+
+// Gom mọi khối hộp tĩnh (vỉa hè, cầu, cột đèn, thân cây…) vào MỘT InstancedMesh
+const props = [];
+const addBox = (x, y, z, sx, sy, sz, color) => props.push([x, y, z, sx, sy, sz, color]);
+const parks = new Set();
+const lamps = [];   // [x, z, hướng ra đường nx, nz]
+const trees = [];   // [x, z, cỡ]
+const buildings = [];
+
+(function buildCity() {
+  // --- mặt đất, sông -------------------------------------------------------
+  const groundMat = new THREE.MeshLambertMaterial({ color: 0x66626e });
+  for (const s of [-1, 1]) {
+    const edge = s < 0 ? RZ0 : RZ1, depth = 1000 - Math.abs(edge);
+    const g = new THREE.Mesh(new THREE.PlaneGeometry(2400, depth), groundMat);
+    g.rotation.x = -Math.PI / 2; g.position.set(0, 0, edge + s * depth / 2);
+    scene.add(g);
+    addBox(0, -0.8, edge - s * 0.25, 2400, 1.6, 0.5, 0x6a6470);            // kè sông
+  }
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(2400, BLOCK), new THREE.MeshBasicMaterial({ color: 0x335577 }));
+  water.rotation.x = -Math.PI / 2; water.position.set(0, WATER_Y, (RZ0 + RZ1) / 2);
+  scene.add(water); game.water = water;
+
+  // --- vạch tim đường và cầu ----------------------------------------------
+  const zMid = (RZ0 + RZ1) / 2, LINE = 0x9a8c6a;
+  for (let i = 0; i <= N; i++) {
+    addBox(0, 0.02, roadC(i), HALF * 2, 0.04, 0.25, LINE);
+    if (BRIDGES.includes(i)) {
+      addBox(roadC(i), 0.02, 0, 0.25, 0.04, HALF * 2, LINE);
+      addBox(roadC(i), -0.3, zMid, ROAD, 0.58, BLOCK + 1, 0x55505c);      // mặt cầu
+      for (const s of [-1, 1]) {
+        addBox(roadC(i) + s * (ROAD / 2 - 0.2), 0.55, zMid, 0.3, 1.1, BLOCK + 1, 0xb9a9a0);  // lan can
+        addBox(roadC(i), -1.2, zMid + s * 10, ROAD - 2, 1.4, 1.6, 0x6a6470);                // trụ cầu
+      }
+    } else {
+      const len = RZ0 + HALF;
+      addBox(roadC(i), 0.02, -HALF + len / 2, 0.25, 0.04, len, LINE);
+      addBox(roadC(i), 0.02, HALF - len / 2, 0.25, 0.04, len, LINE);
+    }
+  }
+
+  // --- từng khu nhà -------------------------------------------------------
+  const PALETTE = [0x8d7a9c, 0x6f6a94, 0xb08a86, 0xc9a58e, 0x7d8aa6, 0x9c6f7a, 0xa9998f, 0x5f6788, 0xd2b49a, 0x86708f];
+  const SIDE = 5;                                  // bề rộng vỉa hè quanh khu nhà
+  for (let j = 0; j < N; j++) for (let k = 0; k < N; k++) {
+    if (j === RIVER_ROW) continue;
+    const x0 = blockMin(k), z0 = blockMin(j), cx = x0 + BLOCK / 2, cz = z0 + BLOCK / 2;
+    const nearRiver = Math.abs(j - RIVER_ROW) === 1;
+    const isPark = rng() < (nearRiver ? 0.3 : 0.08);
+    if (isPark) parks.add(j * N + k);
+    addBox(cx, CURB / 2, cz, BLOCK, CURB, BLOCK, isPark ? 0x5a8a5e : 0x99939f);
+
+    // đèn đường ở giữa 4 cạnh, cây gần 4 góc
+    for (const [nx, nz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      lamps.push([cx + nx * (BLOCK / 2 - 0.8), cz + nz * (BLOCK / 2 - 0.8), nx, nz]);
+      for (const t of [-1, 1]) if (rng() < 0.75)
+        trees.push([cx + nx * (BLOCK / 2 - 2.2) + nz * t * 13, cz + nz * (BLOCK / 2 - 2.2) + nx * t * 13, rr(0.8, 1.1)]);
+    }
+    if (isPark) {
+      for (let i = 0; i < 16; i++) trees.push([cx + rr(-16, 16), cz + rr(-16, 16), rr(1, 1.7)]);
+      continue;
+    }
+
+    // chia khu thành 1, 2 hoặc 4 lô; càng gần trung tâm nhà càng cao
+    const central = 1 - Math.min(1, Math.hypot(cx, cz) / (HALF * 1.1));
+    const inner = BLOCK - SIDE * 2, t = rng();
+    const lots = t < 0.2 ? [[0, 0, inner, inner]]
+      : t < 0.5 ? (rng() < 0.5 ? [[-0.25, 0, inner / 2, inner], [0.25, 0, inner / 2, inner]] : [[0, -0.25, inner, inner / 2], [0, 0.25, inner, inner / 2]])
+      : [[-0.25, -0.25, inner / 2, inner / 2], [0.25, -0.25, inner / 2, inner / 2], [-0.25, 0.25, inner / 2, inner / 2], [0.25, 0.25, inner / 2, inner / 2]];
+    for (const [ox, oz, w, d] of lots) {
+      const sx = w - rr(1.5, 4), sz = d - rr(1.5, 4);
+      let h = lerp(13, 62, Math.pow(central, 1.4)) * rr(0.55, 1.35);
+      if (rng() < 0.05) h += rr(30, 55);                                   // vài toà chọc trời
+      h = Math.round(h / 3.5) * 3.5 + 1;
+      const bx = cx + ox * inner, bz = cz + oz * inner;
+      const box = { minX: bx - sx / 2, maxX: bx + sx / 2, minZ: bz - sz / 2, maxZ: bz + sz / 2, top: CURB + h };
+      blockBoxes[j * N + k].push(box); allBoxes.push(box);
+      buildings.push([bx, bz, sx, h, sz, pick(PALETTE)]);
+    }
+  }
+
+  // --- toà nhà: 1 InstancedMesh ------------------------------------------
+  const bMesh = new THREE.InstancedMesh(boxGeo, new THREE.MeshLambertMaterial(), buildings.length);
+  buildings.forEach(([x, z, sx, h, sz, c], i) => {
+    dummy.position.set(x, CURB + h / 2, z); dummy.rotation.set(0, 0, 0); dummy.scale.set(sx, h, sz); dummy.updateMatrix();
+    bMesh.setMatrixAt(i, dummy.matrix);
+    bMesh.setColorAt(i, col.setHex(c).multiplyScalar(rr(0.8, 1.05)));
+  });
+  scene.add(bMesh);
+
+  // --- cửa sổ: 1 InstancedMesh, sáng dần khi trời tối ---------------------
+  const CELL = 3.5, MAXWIN = isTouch ? 9000 : 20000;
+  let cells = 0;
+  for (const [, , sx, h, sz] of buildings) cells += 2 * (Math.floor(sx / CELL) + Math.floor(sz / CELL)) * Math.floor((h - 2) / CELL);
+  const prob = Math.min(0.5, MAXWIN / cells);
+  const WIN = [0xffd9a0, 0xffc070, 0xffe8c8, 0xffb060, 0xa8d8ff];
+  const winMat = new THREE.MeshBasicMaterial({ color: 0x333333 });
+  const wMesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(1.7, 1.9), winMat, Math.ceil(cells * prob * 1.15) + 16);
+  let wi = 0;
+  for (const [x, z, sx, h, sz] of buildings) {
+    const rows = Math.floor((h - 2) / CELL);
+    for (let f = 0; f < 4; f++) {                  // 4 mặt: +Z, +X, -Z, -X
+      const alongX = f % 2 === 0, w = alongX ? sx : sz, dOut = (alongX ? sz : sx) / 2 + 0.04, sgn = f < 2 ? 1 : -1;
+      const cols = Math.floor(w / CELL);
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+        if (rng() > prob || wi >= wMesh.count) continue;
+        const u = (c + 0.5 - cols / 2) * CELL, y = CURB + 3 + r * CELL;
+        dummy.position.set(alongX ? x + u : x + sgn * dOut, y, alongX ? z + sgn * dOut : z + u);
+        dummy.rotation.set(0, f * Math.PI / 2, 0); dummy.scale.set(1, 1, 1); dummy.updateMatrix();
+        wMesh.setMatrixAt(wi, dummy.matrix);
+        wMesh.setColorAt(wi++, col.setHex(pick(WIN)).multiplyScalar(rr(0.45, 1)));
+      }
+    }
+  }
+  wMesh.count = wi;
+  scene.add(wMesh); game.winMat = winMat;
+
+  // --- cây: thân là hộp (gom chung), tán là 1 InstancedMesh ---------------
+  const LEAF = [0x4f8a55, 0x5f9a5a, 0x3f7a58, 0xc9824a, 0xd9685e, 0x7aa35a];
+  const crown = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), new THREE.MeshLambertMaterial({ flatShading: true }), trees.length);
+  trees.forEach(([x, z, s], i) => {
+    const y0 = groundY(x, z);
+    addBox(x, y0 + 1.3 * s, z, 0.35, 2.6 * s, 0.35, 0x5a4638);
+    dummy.position.set(x, y0 + 3.6 * s, z); dummy.rotation.set(rng() * 3, rng() * 3, 0);
+    dummy.scale.set(2.1 * s, 2.3 * s * rr(0.85, 1.2), 2.1 * s); dummy.updateMatrix();
+    crown.setMatrixAt(i, dummy.matrix); crown.setColorAt(i, col.setHex(pick(LEAF)).multiplyScalar(rr(0.8, 1.1)));
+  });
+  scene.add(crown);
+
+  // --- đèn đường: cột (gom chung), bóng đèn và vệt sáng trên đường --------
+  const bulbMat = new THREE.MeshBasicMaterial({ color: 0x554433 });
+  const poolMat = new THREE.MeshBasicMaterial({ color: 0xffc27a, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
+  const bulbs = new THREE.InstancedMesh(new THREE.SphereGeometry(0.32, 8, 6), bulbMat, lamps.length);
+  const pools = new THREE.InstancedMesh(new THREE.CircleGeometry(5.5, 20).rotateX(-Math.PI / 2), poolMat, lamps.length);
+  lamps.forEach(([x, z, nx, nz], i) => {
+    addBox(x, CURB + 2.8, z, 0.18, 5.6, 0.18, 0x3a3644);
+    addBox(x + nx * 1.1, CURB + 5.55, z + nz * 1.1, nx ? 2.4 : 0.14, 0.14, nz ? 2.4 : 0.14, 0x3a3644);
+    dummy.rotation.set(0, 0, 0); dummy.scale.set(1, 1, 1);
+    dummy.position.set(x + nx * 2.3, CURB + 5.35, z + nz * 2.3); dummy.updateMatrix(); bulbs.setMatrixAt(i, dummy.matrix);
+    dummy.position.set(x + nx * 3.2, 0.05, z + nz * 3.2); dummy.updateMatrix(); pools.setMatrixAt(i, dummy.matrix);
+  });
+  scene.add(bulbs, pools); game.bulbMat = bulbMat; game.poolMat = poolMat;
+
+  // --- gom hộp tĩnh -------------------------------------------------------
+  const pMesh = new THREE.InstancedMesh(boxGeo, new THREE.MeshLambertMaterial(), props.length);
+  props.forEach(([x, y, z, sx, sy, sz, c], i) => {
+    dummy.position.set(x, y, z); dummy.rotation.set(0, 0, 0); dummy.scale.set(sx, sy, sz); dummy.updateMatrix();
+    pMesh.setMatrixAt(i, dummy.matrix); pMesh.setColorAt(i, col.setHex(c));
+  });
+  scene.add(pMesh);
+})();
+
+// ============================================================================
+// 5. TRỜI VÀ CHU KỲ NGÀY → ĐÊM
+// ============================================================================
+const skyMat = new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false, fog: false,
+  uniforms: { uTop: { value: new THREE.Color() }, uHor: { value: new THREE.Color() }, uSunCol: { value: new THREE.Color() }, uFog: { value: new THREE.Color() }, uSunDir: { value: new THREE.Vector3(0, 1, 0) } },
+  vertexShader: `varying vec3 vDir; void main(){ vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `
+    uniform vec3 uTop, uHor, uSunCol, uFog, uSunDir; varying vec3 vDir;
+    void main(){
+      vec3 d = normalize(vDir);
+      vec3 c = mix(uHor, uTop, smoothstep(0.0, 0.6, d.y));
+      c = mix(c, uFog, smoothstep(0.03, -0.04, d.y));
+      float s = max(dot(d, uSunDir), 0.0);
+      c += uSunCol * (smoothstep(0.9993, 0.9996, s) * 1.5 + pow(s, 14.0) * 0.4);   // đĩa mặt trời/trăng + quầng
+      gl_FragColor = vec4(c, 1.0);
+      #include <colorspace_fragment>
+    }`,
+});
+const sky = new THREE.Mesh(new THREE.SphereGeometry(1000, 24, 16), skyMat);
+sky.renderOrder = -2; scene.add(sky);
+
+const starPos = new Float32Array(500 * 3);
+for (let i = 0; i < 500; i++) {
+  const a = rng() * Math.PI * 2, e = Math.asin(rr(0.08, 1));
+  starPos.set([Math.cos(a) * Math.cos(e) * 950, Math.sin(e) * 950, Math.sin(a) * Math.cos(e) * 950], i * 3);
+}
+const stars = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(starPos, 3)),
+  new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, transparent: true, opacity: 0, fog: false, depthWrite: false }));
+stars.renderOrder = -1; scene.add(stars);
+
+// Các mốc trong ngày (t từ 0 đến 1), giữa các mốc thì nội suy.
+// elev = độ cao mặt trời (ban đêm là mặt trăng); night = mức sáng của đèn và cửa sổ
+const C = (h) => new THREE.Color(h);
+const KEYS = [
+  { t: 0.00, top: C(0x3b2a6b), hor: C(0xff8a4c), fog: C(0xc9705e), sun: C(0xffb070), sunI: 2.4, amb: 1.25, night: 0.25, elev: 0.09 }, // hoàng hôn
+  { t: 0.12, top: C(0x2a1f5c), hor: C(0xe0567a), fog: C(0x7c4a78), sun: C(0xff7a70), sunI: 1.0, amb: 1.0, night: 0.7, elev: 0.0 },   // chạng vạng
+  { t: 0.25, top: C(0x070b22), hor: C(0x1b2150), fog: C(0x141a3c), sun: C(0x8fa8ff), sunI: 0.5, amb: 0.8, night: 1, elev: 0.45 },   // đêm
+  { t: 0.55, top: C(0x070b22), hor: C(0x1b2150), fog: C(0x141a3c), sun: C(0x8fa8ff), sunI: 0.5, amb: 0.8, night: 1, elev: 0.3 },
+  { t: 0.65, top: C(0x40407a), hor: C(0xff9e8a), fog: C(0xb0808c), sun: C(0xffc0a0), sunI: 1.3, amb: 1.0, night: 0.45, elev: 0.05 }, // bình minh
+  { t: 0.75, top: C(0x4a78c8), hor: C(0xffd9b0), fog: C(0xc9c2c4), sun: C(0xfff0dc), sunI: 2.8, amb: 1.4, night: 0, elev: 0.6 },    // ban ngày
+  { t: 0.92, top: C(0x4a6fb8), hor: C(0xffc890), fog: C(0xcfae9c), sun: C(0xffdcae), sunI: 2.8, amb: 1.4, night: 0, elev: 0.3 },
+];
+KEYS.push({ ...KEYS[0], t: 1 });
+const env = { top: C(0), hor: C(0), fog: C(0), sun: C(0), sunDir: new THREE.Vector3() };
+function applyEnv(t) {
+  let i = 0; while (KEYS[i + 1].t < t) i++;
+  const a = KEYS[i], b = KEYS[i + 1], f = (t - a.t) / (b.t - a.t), L = (k) => lerp(a[k], b[k], f);
+  for (const k of ['top', 'hor', 'fog', 'sun']) env[k].lerpColors(a[k], b[k], f);
+  const night = (game.night = L('night')), e = L('elev') * Math.PI / 2;
+  env.sunDir.set(-Math.cos(e) * 0.8, Math.sin(e), -Math.cos(e) * 0.6).normalize();
+  skyMat.uniforms.uTop.value.copy(env.top); skyMat.uniforms.uHor.value.copy(env.hor);
+  skyMat.uniforms.uSunCol.value.copy(env.sun); skyMat.uniforms.uFog.value.copy(env.fog); skyMat.uniforms.uSunDir.value.copy(env.sunDir);
+  scene.fog.color.copy(env.fog); renderer.setClearColor(env.fog);
+  sun.color.copy(env.sun); sun.intensity = L('sunI');
+  sun.position.copy(env.sunDir).multiplyScalar(100);
+  hemi.color.copy(env.top).lerp(env.hor, 0.5); hemi.groundColor.copy(env.fog).multiplyScalar(0.6); hemi.intensity = L('amb') * 1.6;
+  stars.material.opacity = clamp(night * 1.6 - 0.7, 0, 1);
+  game.water.material.color.copy(env.top).lerp(env.hor, 0.45).multiplyScalar(0.8);
+  // đèn sáng dần khi trời tối
+  game.winMat.color.setScalar(lerp(0.16, 1.0, night));
+  game.bulbMat.color.setRGB(1, 0.82, 0.55).multiplyScalar(lerp(0.25, 1, night));
+  game.poolMat.opacity = night * 0.22;
+}
+game.setTime = (t) => { game.time = ((t % 1) + 1) % 1; applyEnv(game.time); };
+sys.env = (dt) => {
+  game.time = (game.time + dt / CONFIG.dayLength) % 1;
+  applyEnv(game.time);
+  sky.position.copy(camera.position); stars.position.copy(camera.position);
+};
+
+// ============================================================================
+// 6. ĐIỀU KHIỂN — bàn phím + chuột (laptop), joystick ảo + nút (điện thoại)
+// ============================================================================
+const cam = { yaw: Math.PI, pitch: 0.22, dist: 7, fov: 60, target: new THREE.Vector3(), idle: 9 };
+const input = { mx: 0, my: 0, space: false, shift: false, mouse: false, btnA: false, btnB: false, jump: false, interact: false };
+const keys = {};
+const stick = { x: 0, y: 0 };
+let jumpQ = false, interactQ = false;
+function look(dx, dy, s) {
+  cam.yaw -= dx * s; cam.pitch = clamp(cam.pitch + dy * s, -1.1, 1.4); cam.idle = 0;
+}
+addEventListener('keydown', (e) => {
+  if (e.repeat) return;
+  keys[e.code] = true;
+  if (e.code === 'Space') jumpQ = true;
+  if (e.code === 'KeyE') interactQ = true;
+  if (e.code === 'KeyM') game.toggleMusic?.();
+  if (e.code === 'KeyR') game.nextTrack?.();
+  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
+});
+addEventListener('keyup', (e) => { keys[e.code] = false; });
+addEventListener('blur', () => { for (const k in keys) keys[k] = false; input.mouse = false; });
+
+const canvas = $('scene');
+const locked = () => document.pointerLockElement === canvas;
+canvas.addEventListener('click', () => { if (!isTouch && !locked()) canvas.requestPointerLock?.(); });
+addEventListener('mousemove', (e) => { if (locked()) look(e.movementX, e.movementY, 0.0024); });
+addEventListener('mousedown', (e) => { if (locked() && e.button === 0) input.mouse = true; });
+addEventListener('mouseup', (e) => { if (e.button === 0) input.mouse = false; });
+canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+// Vuốt trên màn hình (hoặc kéo chuột khi chưa khoá con trỏ) để xoay camera
+let lookId = null, lookX = 0, lookY = 0;
+canvas.addEventListener('pointerdown', (e) => { if (locked() || lookId !== null) return; lookId = e.pointerId; lookX = e.clientX; lookY = e.clientY; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove', (e) => { if (e.pointerId !== lookId) return; look(e.clientX - lookX, e.clientY - lookY, 0.006); lookX = e.clientX; lookY = e.clientY; });
+const endLook = (e) => { if (e.pointerId === lookId) lookId = null; };
+canvas.addEventListener('pointerup', endLook); canvas.addEventListener('pointercancel', endLook);
+
+// Joystick ảo: chạm vào đâu ở nửa trái thì tâm joystick nhảy tới đó
+{
+  const zone = $('stickZone'), base = $('stickBase'), knob = $('stickKnob'), R = 52;
+  let id = null, ox = 0, oy = 0;
+  const reset = () => { id = null; stick.x = stick.y = 0; base.style.left = base.style.top = ''; knob.style.transform = ''; };
+  zone.addEventListener('pointerdown', (e) => {
+    if (id !== null) return;
+    id = e.pointerId; zone.setPointerCapture(id);
+    const r = zone.getBoundingClientRect(); ox = e.clientX; oy = e.clientY;
+    base.style.left = (ox - r.left) + 'px'; base.style.top = (oy - r.top) + 'px';
+  });
+  zone.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== id) return;
+    let dx = e.clientX - ox, dy = e.clientY - oy; const d = Math.hypot(dx, dy);
+    if (d > R) { dx *= R / d; dy *= R / d; }
+    stick.x = dx / R; stick.y = -dy / R; knob.style.transform = `translate(${dx}px,${dy}px)`;
+  });
+  zone.addEventListener('pointerup', (e) => { if (e.pointerId === id) reset(); });
+  zone.addEventListener('pointercancel', (e) => { if (e.pointerId === id) reset(); });
+}
+// Nút giữ (đu dây / nhảy / bay lên / hạ xuống)
+function holdButton(el, key, onDown) {
+  el.addEventListener('pointerdown', (e) => { e.preventDefault(); el.setPointerCapture(e.pointerId); input[key] = true; el.classList.add('on'); onDown?.(); });
+  const up = () => { input[key] = false; el.classList.remove('on'); };
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+}
+holdButton($('btnA'), 'btnA');
+holdButton($('btnB'), 'btnB', () => { jumpQ = true; });
+$('btnE').addEventListener('pointerdown', (e) => { e.preventDefault(); interactQ = true; });
+$('help').textContent = 'WASD di chuyển · Chuột xoay camera · Space nhảy · Giữ chuột trái / Shift đu dây · E lên/xuống xe · M nhạc';
+
+sys.input = () => {
+  const kx = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
+  const ky = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0);
+  input.mx = clamp(kx + stick.x, -1, 1); input.my = clamp(ky + stick.y, -1, 1);
+  input.space = !!keys.Space; input.shift = !!(keys.ShiftLeft || keys.ShiftRight);
+  input.jump = jumpQ; input.interact = interactQ; jumpQ = interactQ = false;
+};
+
+// ============================================================================
+// 7. NẠP MODEL .glb — thiếu file thì dùng model tạm bằng hình khối
+// ============================================================================
+const loader = new GLTFLoader();
+// Trả về một Group rỗng ngay lập tức; model thật (hoặc model tạm) được gắn vào sau
+function loadModel(cfg, makeFallback, onReady) {
+  const holder = new THREE.Group();
+  holder.rotation.order = 'YXZ';
+  loader.load(cfg.url, (gltf) => {
+    const m = gltf.scene;
+    m.scale.setScalar(cfg.scale); m.rotation.y = cfg.rotY * Math.PI / 180; m.position.y = cfg.yOffset;
+    holder.add(m);
+    const size = new THREE.Box3().setFromObject(m).getSize(new THREE.Vector3());
+    console.log(`[model] ${cfg.url}: rộng ${size.x.toFixed(2)} × cao ${size.y.toFixed(2)} × dài ${size.z.toFixed(2)} m,`,
+      'animation:', gltf.animations.map((c) => c.name).join(', ') || '(không có)');
+    onReady(m, gltf.animations, false);
+  }, undefined, () => {
+    console.log(`[model] chưa có ${cfg.url} → dùng model tạm`);
+    const m = makeFallback(); holder.add(m); onReady(m, [], true);
+  });
+  return holder;
+}
+const lambert = (color, extra) => new THREE.MeshLambertMaterial({ color, ...extra });
+const blobMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3, depthWrite: false });
+const blobGeo = new THREE.CircleGeometry(1, 16).rotateX(-Math.PI / 2);
+
+// ============================================================================
+// 8. VA CHẠM AABB — dùng chung cho nhân vật và xe
+// ============================================================================
+// body: { pos, vel, r }. Sau khi gọi: body.grounded, body.wall (pháp tuyến tường vừa chạm), body.floorY
+function moveBody(b, dt) {
+  const p = b.pos, r = b.r;
+  p.addScaledVector(b.vel, dt);
+  const lim = HALF + 80; p.x = clamp(p.x, -lim, lim); p.z = clamp(p.z, -lim, lim);
+  let floor = groundY(p.x, p.z);
+  b.wall = null;
+  const tol = Math.max(0.6, -b.vel.y * dt + 0.2);    // rơi nhanh vẫn bắt được mặt sân thượng
+  const list = nearBoxes(p.x, p.z, r);
+  for (let i = 0; i < list.length; i++) {
+    const o = list[i];
+    if (p.x < o.minX - r || p.x > o.maxX + r || p.z < o.minZ - r || p.z > o.maxZ + r) continue;
+    if (p.y >= o.top - tol) {                        // ở phía trên: nóc nhà là sàn
+      if (p.x > o.minX && p.x < o.maxX && p.z > o.minZ && p.z < o.maxZ) floor = Math.max(floor, o.top);
+      continue;
+    }
+    // ở bên hông: đẩy ra theo hướng lún ít nhất, bỏ phần vận tốc đâm vào tường
+    const d0 = p.x - (o.minX - r), d1 = (o.maxX + r) - p.x, d2 = p.z - (o.minZ - r), d3 = (o.maxZ + r) - p.z;
+    const m = Math.min(d0, d1, d2, d3);
+    let nx = 0, nz = 0;
+    if (m === d0) { p.x = o.minX - r; nx = -1; } else if (m === d1) { p.x = o.maxX + r; nx = 1; }
+    else if (m === d2) { p.z = o.minZ - r; nz = -1; } else { p.z = o.maxZ + r; nz = 1; }
+    const vn = b.vel.x * nx + b.vel.z * nz;
+    if (vn < 0) { b.vel.x -= nx * vn; b.vel.z -= nz * vn; }
+    b.wall = { nx, nz, top: o.top };
+  }
+  b.floorY = floor;
+  if (p.y <= floor + 1e-4) { p.y = floor; if (b.vel.y < 0) b.vel.y = 0; b.grounded = true; } else b.grounded = false;
+}
+
+// ============================================================================
+// 9. NHÂN VẬT — chạy, nhảy, chạy tường, animation
+// ============================================================================
+const hero = {
+  pos: new THREE.Vector3(roadC(BRIDGES[1]) + 3, 0, roadC(RIVER_ROW - 1)), vel: new THREE.Vector3(), r: 0.45,
+  grounded: true, wall: null, floorY: 0, onWall: false, inCar: false, rope: null, yaw: Math.PI, tilt: 0,
+  mixer: null, actions: {}, action: null, animName: '', parts: null, phase: 0,
+};
+game.hero = hero;
+
+// Model tạm: người hùng đeo mặt nạ, ghép từ capsule. Tay chân có khớp để lắc lư bằng code
+function makeHeroFallback() {
+  const c = CONFIG.hero.colors, suit = lambert(c.suit), acc = lambert(c.accent), g = new THREE.Group();
+  const add = (geo, mat, x, y, z, parent = g) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); parent.add(m); return m; };
+  add(new THREE.CapsuleGeometry(0.23, 0.48, 4, 10), suit, 0, 1.15, 0);
+  add(new THREE.BoxGeometry(0.5, 0.09, 0.42), acc, 0, 0.9, 0);                    // thắt lưng
+  add(new THREE.SphereGeometry(0.2, 12, 10), suit, 0, 1.7, 0);
+  for (const s of [-1, 1]) add(new THREE.SphereGeometry(0.07, 8, 6), new THREE.MeshBasicMaterial({ color: c.visor }), s * 0.085, 1.72, 0.155).scale.set(1, 0.7, 0.5);
+  const limb = (x, y, len, rad, boot) => {
+    const pivot = new THREE.Group(); pivot.position.set(x, y, 0); g.add(pivot);
+    add(new THREE.CapsuleGeometry(rad, len, 4, 8), suit, 0, -len / 2 - rad * 0.5, 0, pivot);
+    add(new THREE.SphereGeometry(rad * 1.25, 8, 6), acc, 0, -len - rad, boot ? 0.03 : 0, pivot);   // găng / giày
+    return pivot;
+  };
+  g.userData.parts = { armL: limb(0.33, 1.45, 0.5, 0.07), armR: limb(-0.33, 1.45, 0.5, 0.07), legL: limb(0.12, 0.86, 0.6, 0.09, true), legR: limb(-0.12, 0.86, 0.6, 0.09, true) };
+  return g;
+}
+
+hero.holder = loadModel(CONFIG.hero, makeHeroFallback, (model, clips, isFallback) => {
+  hero.parts = isFallback ? model.userData.parts : null;
+  if (!clips.length) return;
+  hero.mixer = new THREE.AnimationMixer(model);
+  // Tìm clip theo tên trong CONFIG (không phân biệt hoa thường, chấp nhận dạng "Armature|run")
+  for (const [key, want] of Object.entries(CONFIG.hero.anim)) {
+    const w = want.toLowerCase();
+    const clip = clips.find((c) => c.name.toLowerCase() === w) || clips.find((c) => c.name.toLowerCase().split(/[|.]/).includes(w));
+    if (!clip) { console.log(`[model] thiếu animation "${want}" → bỏ qua`); continue; }
+    hero.actions[key] = hero.mixer.clipAction(clip);
+  }
+  if (hero.actions.jump) { hero.actions.jump.setLoop(THREE.LoopOnce); hero.actions.jump.clampWhenFinished = true; }
+  hero.animName = ''; // để lần cập nhật tới chọn lại clip
+});
+scene.add(hero.holder);
+const heroBlob = new THREE.Mesh(blobGeo, blobMat); heroBlob.scale.setScalar(0.55); scene.add(heroBlob);
+
+// Chuyển animation có crossfade. Clip thiếu thì giữ nguyên clip đang chạy
+function playAnim(name) {
+  if (hero.animName === name) return;
+  hero.animName = name;
+  const next = hero.actions[name], prev = hero.action;
+  if (!next || next === prev) return;
+  next.reset().setEffectiveWeight(1).fadeIn(CONFIG.hero.crossfade).play();
+  if (prev) prev.fadeOut(CONFIG.hero.crossfade);
+  hero.action = next;
+}
+// Model tạm không có clip: lắc tay chân theo trạng thái
+function animateFallback(name, dt, speed) {
+  const p = hero.parts; if (!p) return;
+  hero.phase += dt * (4 + speed * 1.1);
+  const s = Math.sin(hero.phase);
+  let aL = 0, aR = 0, lL = 0, lR = 0, zz = 0.08;
+  if (name === 'run') { aL = s; aR = -s; lL = -s * 0.9; lR = s * 0.9; }
+  else if (name === 'swing') { aL = -2.7; aR = -0.4; lL = 0.5; lR = 0.15; }
+  else if (name === 'jump') { aL = aR = -2.2; lL = -0.5; lR = 0.3; }
+  else if (name === 'fall') { aL = aR = -1.2; zz = 0.9; lL = 0.3; lR = -0.25; }
+  const k = 1 - Math.exp(-14 * dt);
+  p.armL.rotation.x = lerp(p.armL.rotation.x, aL, k); p.armR.rotation.x = lerp(p.armR.rotation.x, aR, k);
+  p.legL.rotation.x = lerp(p.legL.rotation.x, lL, k); p.legR.rotation.x = lerp(p.legR.rotation.x, lR, k);
+  p.armL.rotation.z = lerp(p.armL.rotation.z, zz, k); p.armR.rotation.z = lerp(p.armR.rotation.z, -zz, k);
+}
+
+// ============================================================================
+// 10. ĐU DÂY — chọn điểm neo, vật lý con lắc, vẽ dây
+// ============================================================================
+// Tìm điểm neo: trên mép/mặt tường toà nhà, cao hơn nhân vật, gần nhất phía trước (fx, fz là hướng nhìn)
+function findAnchor(pos, fx, fz, out) {
+  const R = CONFIG.rope, list = nearBoxes(pos.x, pos.z, R.maxLen);
+  const px = pos.x + fx * 18, pz = pos.z + fz * 18;
+  let best = Infinity;
+  for (let i = 0; i < list.length; i++) {
+    const o = list[i];
+    if (o.top - pos.y < R.minRise) continue;
+    let x = clamp(px, o.minX, o.maxX), z = clamp(pz, o.minZ, o.maxZ);
+    if (x === px && z === pz) {                      // điểm ngắm nằm trong chân toà nhà → dời ra mặt tường gần nhất
+      const d0 = x - o.minX, d1 = o.maxX - x, d2 = z - o.minZ, d3 = o.maxZ - z, m = Math.min(d0, d1, d2, d3);
+      if (m === d0) x = o.minX; else if (m === d1) x = o.maxX; else if (m === d2) z = o.minZ; else z = o.maxZ;
+    }
+    const y = Math.min(o.top, pos.y + R.maxRise);
+    const dx = x - pos.x, dy = y - pos.y, dz = z - pos.z, h = Math.hypot(dx, dz), d = Math.hypot(h, dy);
+    if (d > R.maxLen || d < R.minLen) continue;
+    const dot = h > 1 ? (dx * fx + dz * fz) / h : 1;
+    if (dot < 0.15) continue;                        // chỉ lấy điểm phía trước
+    const cost = d - dy * 0.5 + (1 - dot) * 25;
+    if (cost < best) { best = cost; out.set(x, y, z); }
+  }
+  return best < Infinity;
+}
+
+const ROPE_N = 14;
+const ropeLine = new THREE.Line(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(ROPE_N * 3), 3)),
+  new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.92 }));
+ropeLine.frustumCulled = false; ropeLine.visible = false; scene.add(ropeLine);
+const HAND_Y = 1.4;
+function drawRope() {
+  ropeLine.visible = !!hero.rope;
+  if (!hero.rope) return;
+  const a = hero.rope.anchor, p = hero.pos, arr = ropeLine.geometry.attributes.position;
+  const dist = Math.hypot(a.x - p.x, a.y - p.y - HAND_Y, a.z - p.z);
+  const sag = Math.max(0, hero.rope.len - dist) * 0.6 + 0.12;   // dây chùng thì võng nhiều hơn
+  for (let i = 0; i < ROPE_N; i++) {
+    const t = i / (ROPE_N - 1);
+    arr.setXYZ(i, lerp(p.x, a.x, t), lerp(p.y + HAND_Y, a.y, t) - sag * 4 * t * (1 - t), lerp(p.z, a.z, t));
+  }
+  arr.needsUpdate = true;
+}
+
+const wish = new THREE.Vector3(), _anchor = new THREE.Vector3();
+function heroStep(h, jump) {
+  const M = CONFIG.heroMove, R = CONFIG.rope, v = hero.vel, w = hero.wall;
+  const into = w ? -(wish.x * w.nx + wish.z * w.nz) : 0;
+  hero.onWall = false;
+  if (hero.rope) {                                   // --- đang đu: trọng lực + đạp nhẹ theo hướng bấm, dây rút ngắn dần
+    v.y -= CONFIG.gravity * h; v.addScaledVector(wish, R.pump * h);
+    const rp = hero.rope; rp.rate = rp.len > rp.clear ? R.zip : R.reel;      // dây còn dài quá thì rút nhanh
+    rp.len = Math.max(R.minLen, rp.len - rp.rate * h);
+  } else if (w && into > 0.5) {                      // --- chạy trên tường: bấm hướng vào tường để chạy lên
+    const tx = -w.nz, tz = w.nx, along = wish.x * tx + wish.z * tz;
+    v.x = tx * along * M.run * 0.8 - w.nx * 2; v.z = tz * along * M.run * 0.8 - w.nz * 2;   // -n*2: giữ dính tường
+    v.y = damp(v.y, M.wallClimb * into, 10, h);
+    hero.onWall = true; hero.wallYaw = Math.atan2(-w.nx, -w.nz);
+    if (jump) { v.x = w.nx * M.wallJump; v.z = w.nz * M.wallJump; v.y = M.jump; hero.onWall = false; }
+  } else if (hero.grounded) {                        // --- trên mặt đất / sân thượng
+    v.x = damp(v.x, wish.x * M.run, 14, h); v.z = damp(v.z, wish.z * M.run, 14, h);
+    v.y -= CONFIG.gravity * h;
+    if (jump) v.y = M.jump;
+  } else {                                           // --- trên không: giữ quán tính, lái nhẹ
+    const hs = Math.hypot(v.x, v.z);
+    if (hs < M.run || v.x * wish.x + v.z * wish.z < 0) v.addScaledVector(wish, M.airAccel * h);
+    v.y -= CONFIG.gravity * h;
+  }
+  if (v.lengthSq() > 75 * 75) v.setLength(75);
+  moveBody(hero, h);
+  if (hero.rope) {                                   // ràng buộc con lắc: tay không được xa điểm neo quá chiều dài dây
+    const a = hero.rope.anchor, p = hero.pos;
+    const dx = p.x - a.x, dy = p.y + HAND_Y - a.y, dz = p.z - a.z, d = Math.hypot(dx, dy, dz);
+    if (d > hero.rope.len) {
+      const nx = dx / d, ny = dy / d, nz = dz / d, pull = d - hero.rope.len;
+      p.x -= nx * pull; p.y -= ny * pull; p.z -= nz * pull;
+      const vn = v.x * nx + v.y * ny + v.z * nz;
+      const ex = vn + hero.rope.rate;                                   // dây căng đang rút → bị kéo về phía điểm neo
+      if (ex > 0) { v.x -= nx * ex; v.y -= ny * ex; v.z -= nz * ex; }
+    }
+  }
+}
+
+sys.hero = (dt) => {
+  if (hero.inCar) { ropeLine.visible = false; return; }
+  // hướng di chuyển theo camera
+  const fx = -Math.sin(cam.yaw), fz = -Math.cos(cam.yaw);
+  wish.set(fx * input.my + -fz * input.mx, 0, fz * input.my + fx * input.mx);
+  if (wish.lengthSq() > 1) wish.normalize();
+
+  const swingHeld = input.shift || input.mouse || input.btnA;
+  if (swingHeld && !hero.rope && findAnchor(hero.pos, fx, fz, _anchor)) {       // bắn dây
+    const a = _anchor.clone();
+    const len = Math.hypot(a.x - hero.pos.x, a.y - hero.pos.y - HAND_Y, a.z - hero.pos.z);
+    // clear: chiều dài để điểm thấp nhất của vòng đu vẫn cách mặt đất vài mét
+    hero.rope = { anchor: a, len, rate: 0, clear: Math.max(CONFIG.rope.minLen, a.y - hero.floorY - 4) };
+    if (hero.grounded) hero.vel.y = Math.max(hero.vel.y, 5);
+    hero.vel.x += fx * 4; hero.vel.z += fz * 4;
+  } else if (!swingHeld && hero.rope) {                                          // thả dây: bay tiếp theo quán tính
+    hero.rope = null;
+    if (hero.vel.y > -4) hero.vel.y += CONFIG.rope.releaseBoost;
+  }
+  heroStep(dt / 2, input.jump); heroStep(dt / 2, false);                         // 2 bước nhỏ cho ổn định
+
+  // hướng mặt + animation
+  const v = hero.vel, hs = Math.hypot(v.x, v.z);
+  let face = hero.yaw, tilt = 0;
+  if (hero.onWall) { face = hero.wallYaw; tilt = -1.2; }
+  else if (hs > 1) { face = Math.atan2(v.x, v.z); if (hero.rope) tilt = 0.35; }
+  let dy = face - hero.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+  hero.yaw += dy * (1 - Math.exp(-12 * dt)); hero.tilt = damp(hero.tilt, tilt, 10, dt);
+  hero.holder.position.copy(hero.pos); hero.holder.rotation.set(hero.tilt, hero.yaw, 0);
+
+  const name = hero.rope ? 'swing' : hero.onWall ? 'run' : hero.grounded ? (hs > 1.5 ? 'run' : 'idle') : (v.y > 1 ? 'jump' : 'fall');
+  playAnim(name);
+  if (hero.mixer) { if (hero.action) hero.action.timeScale = name === 'run' ? clamp(hs / CONFIG.heroMove.run, 0.6, 1.4) : 1; hero.mixer.update(dt); }
+  animateFallback(name, dt, hs);
+  drawRope();
+  heroBlob.position.set(hero.pos.x, hero.floorY + 0.06, hero.pos.z);
+  heroBlob.material.opacity = 0.3;
+  heroBlob.visible = hero.pos.y - hero.floorY < 12;
+};
+
+
+// ============================================================================
+// 11. XE — lái arcade, drift nhẹ, bay được, bánh quay, đèn pha
+// ============================================================================
+const car = {
+  pos: new THREE.Vector3(hero.pos.x - 6, 0, hero.pos.z - 7), vel: new THREE.Vector3(), r: 1.5, yaw: Math.PI,
+  grounded: true, wall: null, floorY: 0, flying: false, steer: 0, roll: 0, pitch: 0, spin: 0, wheels: [],
+};
+game.car = car;
+
+// Model tạm: roadster hai cửa dáng thấp, không logo. Bánh đặt đúng tên như trong file .glb
+function makeCarFallback() {
+  const g = new THREE.Group(), R = CONFIG.car.wheelRadius;
+  const extrude = (pts, width, mat) => {
+    const sh = new THREE.Shape(pts.map(([x, y]) => new THREE.Vector2(x, y)));
+    const geo = new THREE.ExtrudeGeometry(sh, { depth: width, bevelEnabled: false }).translate(0, 0, -width / 2).rotateY(-Math.PI / 2);
+    const m = new THREE.Mesh(geo, mat); g.add(m); return m;
+  };
+  // biên dạng nhìn ngang: [dọc thân xe, độ cao]
+  extrude([[-2.1, 0.28], [2.1, 0.28], [2.16, 0.5], [1.25, 0.74], [0.45, 1.12], [-0.5, 1.15], [-1.6, 0.84], [-2.1, 0.8]], 1.8, lambert(CONFIG.car.color));
+  extrude([[1.0, 0.78], [0.42, 1.08], [-0.5, 1.11], [-1.4, 0.86], [-1.4, 0.78]], 1.83, lambert(0x1c2030));   // kính hông
+  const tire = new THREE.CylinderGeometry(R, R, 0.26, 18).rotateZ(Math.PI / 2), rim = new THREE.BoxGeometry(0.28, R * 1.5, 0.09);
+  for (const [name, x, z] of [['FL', 0.86, 1.32], ['FR', -0.86, 1.32], ['RL', 0.86, -1.32], ['RR', -0.86, -1.32]]) {
+    const w = new THREE.Mesh(tire, lambert(0x17171c)); w.name = CONFIG.car.wheels[name]; w.position.set(x, R, z);
+    w.add(new THREE.Mesh(rim, lambert(0xb8bcc6)));                                 // nan hoa để thấy bánh quay
+    g.add(w);
+  }
+  return g;
+}
+// Bọc mỗi bánh trong 2 khớp: khớp ngoài đánh lái (trục đứng), khớp trong quay lăn (trục ngang)
+function setupWheels(model) {
+  car.wheels.length = 0;
+  for (const key of ['FL', 'FR', 'RL', 'RR']) {
+    const w = model.getObjectByName(CONFIG.car.wheels[key]);
+    if (!w) { console.log(`[model] không thấy bánh "${CONFIG.car.wheels[key]}" → bỏ qua`); continue; }
+    const steer = new THREE.Group(), spin = new THREE.Group();
+    steer.position.copy(w.position); w.parent.add(steer); steer.add(spin);
+    w.position.set(0, 0, 0); spin.add(w);
+    car.wheels.push({ steer, spin, front: key[0] === 'F' });
+  }
+}
+car.holder = loadModel(CONFIG.car, makeCarFallback, (model) => setupWheels(model));
+scene.add(car.holder);
+// đèn pha, đèn hậu, quầng sáng gầm xe: gắn theo vị trí trong CONFIG nên dùng được cho cả model thật
+const headMat = new THREE.MeshBasicMaterial({ color: 0x777777 }), tailMat = new THREE.MeshBasicMaterial({ color: 0x551111 });
+for (const [list, mat] of [[CONFIG.car.headlights, headMat], [CONFIG.car.taillights, tailMat]]) for (const p of list) {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), mat); m.position.fromArray(p); m.scale.z = 0.5; car.holder.add(m);
+}
+const headlamp = new THREE.SpotLight(0xfff0d0, 0, 70, 0.5, 0.6, 1.2);
+headlamp.position.set(0, 0.9, 1.8); headlamp.target.position.set(0, -1.5, 16); car.holder.add(headlamp, headlamp.target);
+const hoverGlow = new THREE.Mesh(new THREE.CircleGeometry(1.7, 20).rotateX(-Math.PI / 2),
+  new THREE.MeshBasicMaterial({ color: 0x66e0ff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+hoverGlow.position.y = 0.12; car.holder.add(hoverGlow);
+const carBlob = new THREE.Mesh(blobGeo, blobMat); carBlob.scale.set(1.5, 1, 2.4); scene.add(carBlob);
+
+function enterCar() { hero.inCar = true; hero.rope = null; hero.holder.visible = heroBlob.visible = false; cam.idle = 9; }
+function exitCar() {
+  hero.inCar = false; hero.holder.visible = true;
+  const moving = car.vel.length() > 4 || !car.grounded;
+  hero.vel.copy(car.vel);
+  if (moving) { hero.pos.copy(car.pos); hero.pos.y += 1.6; hero.vel.y += 8; }          // nhảy khỏi xe đang chạy/bay: giữ quán tính
+  else hero.pos.set(car.pos.x + Math.cos(car.yaw) * 2.2, car.pos.y, car.pos.z - Math.sin(car.yaw) * 2.2);  // bước ra bên trái
+  hero.yaw = car.yaw;
+}
+const carDist = () => hero.pos.distanceTo(car.pos);
+
+sys.car = (dt) => {
+  if (input.interact) {
+    if (hero.inCar) exitCar();
+    else if (carDist() < 5) enterCar();
+    else {                                             // ở xa: gọi xe tới đậu cạnh mình
+      car.pos.set(hero.pos.x + Math.cos(cam.yaw) * 4, hero.floorY, hero.pos.z - Math.sin(cam.yaw) * 4);
+      car.vel.set(0, 0, 0); car.flying = false; car.yaw = cam.yaw + Math.PI;
+    }
+  }
+  const D = CONFIG.carMove, drv = hero.inCar, v = car.vel;
+  const thr = drv ? input.my : 0, st = drv ? input.mx : 0;
+  const up = drv && (input.space || input.btnA), down = drv && (input.shift || input.btnB);
+  if (up) car.flying = true;
+
+  // đánh lái: trên đường xe quay theo góc bánh và tốc độ; khi bay thì xoay trực tiếp
+  let fx = Math.sin(car.yaw), fz = Math.cos(car.yaw), vF = v.x * fx + v.z * fz;
+  car.steer = damp(car.steer, st * 0.55 / (1 + Math.abs(vF) / 7.5), 8, dt);   // chạy càng nhanh góc lái càng nhỏ
+  car.yaw -= car.flying ? st * 1.5 * dt : car.steer * vF / 2.6 * dt;
+  fx = Math.sin(car.yaw); fz = Math.cos(car.yaw);
+  const rx = -fz, rz = fx;                            // hướng bên phải của xe
+  vF = v.x * fx + v.z * fz; let vS = v.x * rx + v.z * rz;
+  // ga / phanh / lùi
+  const max = car.flying ? D.flySpeed : D.maxSpeed;
+  if (thr > 0) { if (vF < max) vF += D.accel * thr * dt; }
+  else if (thr < 0) vF = Math.max(-D.reverse, vF + (vF > 0 ? D.accel * 2 : D.accel * 0.6) * thr * dt);
+  else vF *= Math.exp(-0.5 * dt);
+  vS *= Math.exp(-(car.flying ? D.flyGrip : D.grip) * dt);   // vận tốc trượt ngang giảm dần → drift nhẹ
+  v.x = fx * vF + rx * vS; v.z = fz * vF + rz * vS;
+  // lên / xuống: đang bay mà không bấm gì thì lơ lửng; không có người lái thì tự hạ xuống
+  if (car.flying) {
+    v.y = damp(v.y, up ? D.lift : down ? -D.lift : drv ? 0 : -6, 3.5, dt);
+    if (car.pos.y > D.ceiling && v.y > 0) v.y = 0;
+  } else v.y -= CONFIG.gravity * dt;
+  moveBody(car, dt);
+  if (car.grounded && !up) car.flying = false;
+  if (drv) { hero.pos.copy(car.pos); hero.vel.copy(v); hero.floorY = car.floorY; }
+
+  // hình ảnh: nghiêng thân, bánh quay theo tốc độ, 2 bánh trước đánh lái
+  car.roll = damp(car.roll, car.flying ? st * 0.45 : clamp(-vS * 0.012, -0.08, 0.08), 6, dt);
+  car.pitch = damp(car.pitch, car.flying ? clamp(-v.y * 0.022, -0.35, 0.35) : 0, 6, dt);
+  car.holder.position.copy(car.pos); car.holder.rotation.set(car.pitch, car.yaw, car.roll);
+  car.spin += (car.flying ? vF * 0.15 : vF) * dt / CONFIG.car.wheelRadius * CONFIG.car.wheelSpinDir;
+  for (const w of car.wheels) {
+    w.spin.rotation[CONFIG.car.wheelAxis] = car.spin;
+    if (w.front) w.steer.rotation.y = -clamp(car.steer * 4, -0.5, 0.5);
+  }
+  const lit = game.night > 0.3 ? 1 : 0;
+  headMat.color.setScalar(lerp(0.45, 1, lit)); tailMat.color.setRGB(lerp(0.3, 1, lit), 0.06, 0.06);
+  headlamp.intensity = lit * 160;
+  hoverGlow.material.opacity = damp(hoverGlow.material.opacity, car.flying ? 0.5 : 0, 5, dt);
+  carBlob.position.set(car.pos.x, car.floorY + 0.05, car.pos.z); carBlob.rotation.y = car.yaw;
+  carBlob.visible = car.pos.y - car.floorY < 15;
+};
+
+// ============================================================================
+// 12. NPC — xe chạy chậm và người đi bộ (chỉ để trang trí, không va chạm)
+// ============================================================================
+{
+  const NC = CONFIG.npc.cars, NP = CONFIG.npc.people;
+  const carGeo = mergeGeometries([new THREE.BoxGeometry(1.8, 0.7, 4.2).translate(0, 0.65, 0), new THREE.BoxGeometry(1.6, 0.55, 2.2).translate(0, 1.25, -0.2)]);
+  const lightGeo = mergeGeometries([new THREE.BoxGeometry(1.5, 0.14, 0.1).translate(0, 0.75, 2.12), new THREE.BoxGeometry(1.5, 0.14, 0.1).translate(0, 0.75, -2.12)]);
+  const lc = new Float32Array(48 * 3);                // đầu xe trắng vàng, đuôi xe đỏ
+  for (let i = 0; i < 48; i++) lc.set(i < 24 ? [1, 0.93, 0.75] : [1, 0.12, 0.1], i * 3);
+  lightGeo.setAttribute('color', new THREE.BufferAttribute(lc, 3));
+  const npcLightMat = new THREE.MeshBasicMaterial({ vertexColors: true });
+  const cars = new THREE.InstancedMesh(carGeo, new THREE.MeshLambertMaterial(), NC);
+  const lights = new THREE.InstancedMesh(lightGeo, npcLightMat, NC);
+  const CARCOL = [0xd9d2c5, 0x7d8aa6, 0xc9665a, 0x3f4a66, 0xe0b25a, 0x6f9a8a];
+  const list = [];
+  for (let i = 0; i < NC; i++) {
+    const alongX = rng() < 0.65;
+    list.push({ alongX, line: roadC(alongX ? Math.floor(rng() * (N + 1)) : pick(BRIDGES)), dir: rng() < 0.5 ? 1 : -1, s: rr(-HALF, HALF), speed: rr(5, 8) });
+    cars.setColorAt(i, col.setHex(pick(CARCOL)));
+  }
+  cars.frustumCulled = lights.frustumCulled = false;
+  scene.add(cars, lights);
+
+  const manGeo = mergeGeometries([new THREE.CapsuleGeometry(0.2, 0.85, 3, 8).translate(0, 0.72, 0), new THREE.SphereGeometry(0.16, 8, 6).translate(0, 1.52, 0)]);
+  const people = new THREE.InstancedMesh(manGeo, new THREE.MeshLambertMaterial(), NP);
+  const MANCOL = [0xe8c9a0, 0x8fb0d0, 0xd98a7a, 0x9a8fc0, 0xf0e0d0, 0x6a9a7a, 0xd0a060];
+  const walkers = [], PER = BLOCK - 5;                // đi vòng quanh khu nhà trên vỉa hè
+  for (let i = 0; i < NP; i++) {
+    let k, j; do { k = Math.floor(rng() * N); j = Math.floor(rng() * N); } while (j === RIVER_ROW);
+    walkers.push({ x0: blockMin(k) + 2.5, z0: blockMin(j) + 2.5, u: rng() * PER * 4, speed: rr(1, 1.6) * (rng() < 0.5 ? 1 : -1) });
+    people.setColorAt(i, col.setHex(pick(MANCOL)));
+  }
+  people.frustumCulled = false; scene.add(people);
+
+  sys.npc = (dt, now) => {
+    const span = HALF + 20;
+    list.forEach((c, i) => {
+      c.s += c.speed * c.dir * dt; if (c.s > span) c.s = -span; else if (c.s < -span) c.s = span;
+      if (c.alongX) { dummy.position.set(c.s, 0, c.line + 3.3 * c.dir); dummy.rotation.set(0, c.dir * Math.PI / 2, 0); }
+      else { dummy.position.set(c.line - 3.3 * c.dir, 0, c.s); dummy.rotation.set(0, c.dir > 0 ? 0 : Math.PI, 0); }
+      dummy.scale.set(1, 1, 1); dummy.updateMatrix(); cars.setMatrixAt(i, dummy.matrix); lights.setMatrixAt(i, dummy.matrix);
+    });
+    cars.instanceMatrix.needsUpdate = lights.instanceMatrix.needsUpdate = true;
+    npcLightMat.color.setScalar(lerp(0.35, 1, game.night));
+    walkers.forEach((w, i) => {
+      w.u = (w.u + w.speed * dt + PER * 4) % (PER * 4);
+      const side = Math.floor(w.u / PER), t = w.u - side * PER;
+      const x = side === 0 ? t : side === 1 ? PER : side === 2 ? PER - t : 0, z = side === 0 ? 0 : side === 1 ? t : side === 2 ? PER : PER - t;
+      dummy.position.set(w.x0 + x, CURB + Math.abs(Math.sin(now * 7 + i)) * 0.06, w.z0 + z);
+      dummy.rotation.set(0, (w.speed > 0 ? side : side + 2) * -Math.PI / 2 + Math.PI / 2, 0); dummy.updateMatrix(); people.setMatrixAt(i, dummy.matrix);
+    });
+    people.instanceMatrix.needsUpdate = true;
+  };
+}
+
+// ============================================================================
+// 13. GIAO DIỆN — nhãn nút đổi theo tình huống
+// ============================================================================
+{
+  let last = '';
+  const tail = isTouch ? '' : ' (E)';
+  sys.ui = () => {
+    const state = hero.inCar ? 'car' : carDist() < 5 ? 'near' : 'far';
+    if (state === last) return; last = state;
+    $('btnE').hidden = false;
+    $('btnE').textContent = (state === 'car' ? 'Xuống xe' : state === 'near' ? 'Lên xe' : 'Gọi xe') + tail;
+    $('btnA').textContent = state === 'car' ? 'Bay lên' : 'Đu dây';
+    $('btnB').textContent = state === 'car' ? 'Hạ xuống' : 'Nhảy';
+    $('btnRadio').hidden = state !== 'car';
+    if (!isTouch) $('help').textContent = state === 'car'
+      ? 'W/S ga – phanh · A/D lái · Giữ Space bay lên · Shift hạ xuống · R đổi bài · E xuống xe'
+      : 'WASD di chuyển · Chuột xoay camera · Space nhảy · Giữ chuột trái / Shift đu dây · E lên xe / gọi xe · M nhạc';
+  };
+}
+
+// ============================================================================
+// 14. CAMERA — góc nhìn thứ ba, bám mượt, không xuyên tường
+// ============================================================================
+// Khoảng cách từ điểm o theo hướng d tới toà nhà gần nhất (tối đa max)
+function rayBoxes(o, d, max) {
+  const list = nearBoxes(o.x, o.z, max);
+  let best = max;
+  for (let i = 0; i < list.length; i++) {
+    const b = list[i];
+    let t0 = 0, t1 = best;
+    for (const [oo, dd, lo, hi] of [[o.x, d.x, b.minX - 0.3, b.maxX + 0.3], [o.y, d.y, -5, b.top + 0.3], [o.z, d.z, b.minZ - 0.3, b.maxZ + 0.3]]) {
+      if (Math.abs(dd) < 1e-6) { if (oo < lo || oo > hi) { t0 = Infinity; break; } continue; }
+      let a = (lo - oo) / dd, c = (hi - oo) / dd; if (a > c) [a, c] = [c, a];
+      t0 = Math.max(t0, a); t1 = Math.min(t1, c);
+      if (t0 > t1) { t0 = Infinity; break; }
+    }
+    if (t0 < best) best = t0;
+  }
+  return best;
+}
+const _dir = new THREE.Vector3();
+sys.camera = (dt) => {
+  const drive = hero.inCar && game.car, body = drive ? game.car : hero;
+  const speed = body.vel.length();
+  cam.idle += dt;
+  if (drive && cam.idle > 1.2 && speed > 3) {         // trong xe: camera tự vòng ra sau đuôi xe
+    let d = game.car.yaw + Math.PI - cam.yaw; d = Math.atan2(Math.sin(d), Math.cos(d));
+    cam.yaw += d * (1 - Math.exp(-2.5 * dt));
+  }
+  const ty = body.pos.y + (drive ? 1.3 : 1.5);
+  cam.target.set(body.pos.x, Math.abs(ty - cam.target.y) > 20 ? ty : damp(cam.target.y, ty, 14, dt), body.pos.z);
+  const want = (drive ? 8.5 : 6.5) + Math.min(speed, 60) * 0.11;   // bay nhanh thì camera kéo xa
+  _dir.set(Math.sin(cam.yaw) * Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch));
+  const free = Math.max(1, rayBoxes(cam.target, _dir, want) - 0.3);
+  cam.dist = free < cam.dist ? free : damp(cam.dist, free, 4, dt);  // lùi vào ngay, kéo ra từ từ
+  camera.position.copy(cam.target).addScaledVector(_dir, cam.dist);
+  camera.position.y = Math.max(camera.position.y, groundY(camera.position.x, camera.position.z) + 0.4);
+  camera.lookAt(cam.target);
+  const fov = 60 + Math.min(speed, 60) * 0.4;
+  if (Math.abs(fov - cam.fov) > 0.05) { cam.fov = damp(cam.fov, fov, 4, dt); camera.fov = cam.fov; camera.updateProjectionMatrix(); }
+};
+game.cam = cam; game.input = input; game.findAnchor = findAnchor; game.groundY = groundY; game.allBoxes = allBoxes;
+
+// ============================================================================
+// 15. ÂM THANH — nhạc lo-fi tự tạo bằng Web Audio, tiếng động cơ điện, tiếng gió
+// ============================================================================
+// Mỗi "bài" là một vòng 4 hợp âm (số nốt MIDI) với nhịp độ riêng
+const TRACKS = [
+  { name: 'Hoàng hôn', bpm: 72, chords: [[57, 60, 64, 67], [53, 57, 60, 64], [48, 52, 55, 59], [55, 59, 62, 65]] },
+  { name: 'Phố đêm', bpm: 82, chords: [[50, 53, 57, 60], [55, 59, 62, 65], [48, 52, 55, 59], [57, 60, 64, 67]] },
+  { name: 'Mưa nhẹ', bpm: 64, chords: [[53, 57, 60, 64], [52, 55, 59, 62], [50, 53, 57, 60], [48, 52, 55, 59]] },
+];
+const audio = { ctx: null, on: true, track: 0, next: 0, step: 0 };
+game.audio = audio;
+game.startAudio = () => {
+  if (audio.ctx) { audio.ctx.resume(); return; }
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;                                   // trình duyệt không hỗ trợ: game vẫn chạy, chỉ không có tiếng
+  const ctx = (audio.ctx = new AC());
+  const gain = (v, to) => { const g = ctx.createGain(); g.gain.value = v; g.connect(to); return g; };
+  const filter = (type, f, to, q = 0.7) => { const n = ctx.createBiquadFilter(); n.type = type; n.frequency.value = f; n.Q.value = q; n.connect(to); return n; };
+  const master = gain(0.8, ctx.destination);
+  audio.music = gain(audio.on ? 0.6 : 0, master);
+  audio.bus = filter('lowpass', 3000, audio.music);  // cắt tiếng cao cho chất "băng cũ"
+  // tiếng ồn trắng (trống) và tiếng rè đĩa than
+  const len = ctx.sampleRate * 2;
+  audio.noise = ctx.createBuffer(1, len, ctx.sampleRate);
+  const crackle = ctx.createBuffer(1, len, ctx.sampleRate);
+  const nd = audio.noise.getChannelData(0), cd = crackle.getChannelData(0);
+  for (let i = 0; i < len; i++) { nd[i] = Math.random() * 2 - 1; cd[i] = Math.random() < 0.0012 ? Math.random() * 2 - 1 : nd[i] * 0.015; }
+  const loop = (buf, to) => { const n = ctx.createBufferSource(); n.buffer = buf; n.loop = true; n.connect(to); n.start(); return n; };
+  loop(crackle, filter('highpass', 1200, gain(0.07, audio.music)));
+  // động cơ điện: tiếng ù trầm + tiếng rít cao, cao độ theo tốc độ
+  audio.engGain = gain(0, master);
+  const osc = (type, to) => { const o = ctx.createOscillator(); o.type = type; o.connect(to); o.start(); return o; };
+  audio.hum = osc('triangle', filter('lowpass', 400, audio.engGain));
+  audio.whine = osc('sine', gain(0.35, audio.engGain));
+  // gió khi bay nhanh
+  audio.windGain = gain(0, master);
+  audio.windF = filter('bandpass', 400, audio.windGain, 0.5);
+  loop(audio.noise, audio.windF);
+};
+function tone(midi, t, dur, type, vol, attack) {
+  const ctx = audio.ctx, o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = type; o.frequency.value = 440 * Math.pow(2, (midi - 69) / 12); o.detune.value = Math.random() * 16 - 8;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + attack); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(audio.bus); o.start(t); o.stop(t + dur + 0.05);
+}
+function drum(t, dur, vol, type, freq) {               // trống từ tiếng ồn qua bộ lọc
+  const ctx = audio.ctx, n = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+  n.buffer = audio.noise; f.type = type; f.frequency.value = freq;
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  n.connect(f).connect(g).connect(audio.bus); n.start(t, Math.random(), dur + 0.05);
+}
+function kick(t) {
+  const ctx = audio.ctx, o = ctx.createOscillator(), g = ctx.createGain();
+  o.frequency.setValueAtTime(120, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.12);
+  g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
+  o.connect(g).connect(audio.bus); o.start(t); o.stop(t + 0.3);
+}
+// Một bước = 1 móc đơn; 8 bước = 1 ô nhịp
+function scheduleStep(s, t, sd, tr) {
+  const i = s % 8, chord = tr.chords[Math.floor(s / 8) % tr.chords.length];
+  const tt = t + (i % 2 ? sd * 0.14 : 0);              // nốt lẻ trễ một chút → nhịp lắc lư
+  if (i === 0) for (const n of chord) tone(n, t, sd * 8, 'triangle', 0.05, 0.35);     // hợp âm nền
+  if (i === 0 || i === 5) { kick(tt); tone(chord[0] - 12, tt, sd * 2.5, 'sine', 0.2, 0.02); }
+  if (i === 2 || i === 6) drum(tt, 0.14, 0.13, 'bandpass', 1700);
+  drum(tt, 0.04, i % 2 ? 0.025 : 0.04, 'highpass', 7000);
+  if (i && Math.random() < 0.3) tone(chord[Math.floor(Math.random() * 4)] + 12, tt, sd * 2.2, 'sine', 0.06, 0.01);  // vài nốt giai điệu
+}
+sys.audio = () => {
+  const ctx = audio.ctx;
+  if (!ctx || ctx.state !== 'running') return;
+  const tr = TRACKS[audio.track], sd = 30 / tr.bpm, now = ctx.currentTime;
+  if (audio.next < now) audio.next = now + 0.05;
+  if (audio.on) while (audio.next < now + 0.25) { scheduleStep(audio.step++, audio.next, sd, tr); audio.next += sd; }
+  const sp = car.vel.length(), k = hero.inCar ? 1 : 0;
+  audio.hum.frequency.setTargetAtTime(60 + sp * 2 + (car.flying ? 25 : 0), now, 0.1);
+  audio.whine.frequency.setTargetAtTime(240 + sp * 20 + (car.flying ? 180 : 0), now, 0.1);
+  audio.engGain.gain.setTargetAtTime(k * (0.04 + Math.min(sp / 60, 1) * 0.05), now, 0.15);
+  const hs = hero.inCar ? sp * 0.5 : hero.vel.length(), w = clamp((hs - 12) / 45, 0, 1);
+  audio.windGain.gain.setTargetAtTime(w * w * 0.3, now, 0.2); audio.windF.frequency.setTargetAtTime(300 + hs * 12, now, 0.2);
+};
+let toastT = 0;
+function toast(text) { const el = $('toast'); el.textContent = text; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 2200); }
+game.toggleMusic = () => {
+  audio.on = !audio.on; $('btnMusic').classList.toggle('on', audio.on);
+  if (audio.ctx) audio.music.gain.setTargetAtTime(audio.on ? 0.6 : 0, audio.ctx.currentTime, 0.15);
+  toast(audio.on ? 'Nhạc: bật' : 'Nhạc: tắt');
+};
+game.nextTrack = () => {                               // radio chỉ đổi bài được khi ngồi trong xe
+  if (!hero.inCar) return;
+  audio.track = (audio.track + 1) % TRACKS.length; audio.step = 0;
+  toast('📻 ' + TRACKS[audio.track].name);
+};
+$('btnMusic').addEventListener('click', () => { game.startAudio(); game.toggleMusic(); });
+$('btnRadio').addEventListener('click', () => game.nextTrack());
+document.addEventListener('visibilitychange', () => { if (audio.ctx) document.hidden ? audio.ctx.suspend() : audio.ctx.resume(); });
+
+// ============================================================================
+// 16. TỰ KIỂM TRA — mở với ?test=1 rồi xem console
+// ============================================================================
+if (params.has('test')) {
+  const ok = (cond, msg) => console.assert(cond, '[test] ' + msg);
+  const zMid = (RZ0 + RZ1) / 2, o = allBoxes[0], cx = (o.minX + o.maxX) / 2, cz = (o.minZ + o.maxZ) / 2;
+  ok(groundY(roadC(1), roadC(1)) === 0 && groundY(blockMin(0) + 5, blockMin(0) + 5) === CURB, 'độ cao đường / vỉa hè');
+  ok(groundY(blockMin(0) + 5, zMid) === RIVER_BED && groundY(roadC(BRIDGES[0]), zMid) === 0, 'lòng sông / mặt cầu');
+  const b = { pos: new THREE.Vector3(cx, 1, o.minZ + 0.2), vel: new THREE.Vector3(0, 0, 3), r: 0.45 };
+  moveBody(b, 0);
+  ok(Math.abs(b.pos.z - (o.minZ - 0.45)) < 1e-6 && b.vel.z === 0 && b.wall.nz === -1, 'AABB đẩy vật ra khỏi tường');
+  b.pos.set(cx, o.top + 0.3, cz); b.vel.set(0, -8, 0); moveBody(b, 0.05);
+  ok(b.grounded && b.pos.y === o.top, 'đáp lên sân thượng');
+  const from = new THREE.Vector3(cx, CURB, o.minZ - 9), a = new THREE.Vector3();
+  ok(findAnchor(from, 0, 1, a) && a.y - from.y >= CONFIG.rope.minRise && a.distanceTo(from) <= CONFIG.rope.maxLen && a.z > from.z, 'điểm neo ở trên cao phía trước');
+  const sp = hero.pos.clone(); hero.pos.copy(from); hero.vel.set(6, 0, 0);
+  hero.rope = { anchor: a, len: a.distanceTo(from), rate: 0, clear: 8 };
+  let over = 0;
+  for (let i = 0; i < 400; i++) { heroStep(1 / 120, false); over = Math.max(over, Math.hypot(a.x - hero.pos.x, a.y - hero.pos.y - HAND_Y, a.z - hero.pos.z) - hero.rope.len); }
+  ok(over < 1e-6, 'dây không bao giờ dài quá chiều dài: ' + over);
+  hero.rope = null; hero.pos.copy(sp); hero.vel.set(0, 0, 0);
+  console.log('[test] đã chạy xong các phép thử');
+}
+
+// ============================================================================
+// 17. VÒNG LẶP CHÍNH + tự hạ độ phân giải khi fps thấp
+// ============================================================================
+const clock = new THREE.Clock();
+let fpsT = 0, fpsN = 0;
+game.fps = 60;
+function frame() {
+  requestAnimationFrame(frame);
+  const raw = clock.getDelta(), dt = Math.min(raw, 1 / 30), now = clock.elapsedTime;
+  for (const k of ORDER) sys[k]?.(dt, now);
+  renderer.render(scene, camera);
+  fpsT += raw; fpsN++;
+  if (fpsT >= 2) {
+    game.fps = fpsN / fpsT; fpsT = fpsN = 0;
+    if (game.fps < 45 && pixelRatio > 0.75 && !document.hidden) { pixelRatio = Math.max(0.75, pixelRatio - 0.25); renderer.setPixelRatio(pixelRatio); resize(); }
+  }
+}
+
+// Chạy n bước mô phỏng không cần vẽ (dùng cho kiểm thử tự động)
+let simNow = 0;
+game.step = (n, dt = 1 / 60) => { for (let i = 0; i < n; i++) { simNow += dt; for (const k of ORDER) sys[k]?.(dt, simNow); } };
+
+// Màn hình bắt đầu: lần chạm đầu tiên cũng là lúc được phép bật âm thanh
+$('start').addEventListener('click', () => {
+  $('start').hidden = true;
+  game.startAudio?.();
+  if (!isTouch) canvas.requestPointerLock?.();
+});
+
+applyEnv(game.time);
+frame();
+game.ready = true;
+</script>
+</body>
+</html>
