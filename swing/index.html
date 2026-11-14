@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="theme-color" content="#2a1f5c" />
+<title>Đu dây hoàng hôn</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #1b1438; color: #fff;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  canvas#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  .ui { position: fixed; z-index: 5; }
+  button { font: inherit; color: #fff; border: 0; touch-action: none; -webkit-tap-highlight-color: transparent; }
+  .glass { background: rgba(30, 20, 60, .45); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, .22); }
+  .glass.on, .glass:active { background: rgba(255, 150, 90, .55); }
+
+  /* Màn hình bắt đầu */
+  #start { inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; text-align: center; padding: 24px; cursor: pointer;
+    background: linear-gradient(#2a1f5ccc, #e0567a99 70%, #ff8a4c99); }
+  #start h1 { margin: 0; font-size: clamp(28px, 6vw, 54px); font-weight: 700; letter-spacing: .02em; }
+  #start p { margin: 0; opacity: .9; max-width: 34em; line-height: 1.5; }
+  #start .go { margin-top: 8px; padding: 14px 34px; border-radius: 999px; font-size: 18px; }
+
+  /* Góc trên phải: nhạc + radio */
+  #top { top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); display: flex; gap: 8px; }
+  #top button { width: 48px; height: 48px; border-radius: 50%; font-size: 20px; }
+  #toast { top: max(66px, calc(env(safe-area-inset-top) + 56px)); right: 12px; padding: 6px 12px; border-radius: 10px;
+    font-size: 14px; opacity: 0; transition: opacity .4s; pointer-events: none; }
+  #toast.show { opacity: 1; }
+
+  /* Gợi ý phím (laptop) */
+  #help { left: 12px; bottom: 10px; font-size: 13px; opacity: .75; line-height: 1.5; pointer-events: none;
+    text-shadow: 0 1px 3px #000a; }
+
+  /* Nút lên/xuống xe: hiện ở cả laptop lẫn điện thoại khi đứng gần xe */
+  #btnE { left: 50%; bottom: max(26px, env(safe-area-inset-bottom)); transform: translateX(-50%);
+    padding: 14px 26px; border-radius: 999px; font-size: 17px; }
+
+  /* Điều khiển cảm ứng */
+  #stickZone { left: 0; bottom: 0; width: 42%; height: 60%; touch-action: none; }
+  #stickBase { position: absolute; width: 124px; height: 124px; margin: -62px 0 0 -62px; border-radius: 50%;
+    left: 96px; top: calc(100% - 110px); pointer-events: none; }
+  #stickKnob { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px;
+    border-radius: 50%; background: rgba(255, 255, 255, .55); }
+  #pad { right: max(14px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom));
+    width: 190px; height: 190px; pointer-events: none; }
+  #pad button { position: absolute; border-radius: 50%; pointer-events: auto; font-size: 15px; font-weight: 600; line-height: 1.15; }
+  #btnA { right: 0; bottom: 0; width: 112px; height: 112px; }
+  #btnB { right: 106px; bottom: 96px; width: 84px; height: 84px; }
+  .touch-only { display: none; }
+  body.touch .touch-only { display: block; }
+  body.touch #help { display: none; }
+  [hidden] { display: none !important; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<div id="start" class="ui">
+  <h1>Đu dây hoàng hôn</h1>
+  <p>Một thành phố yên bình. Không kẻ địch, không tính giờ, không thua.<br>Đu dây, chạy trên tường, lái (và bay) chiếc roadster.</p>
+  <button class="go glass">Chạm để bắt đầu</button>
+</div>
+
+<div id="top" class="ui">
+  <button id="btnRadio" class="glass" title="Đổi bài (R)" hidden>📻</button>
+  <button id="btnMusic" class="glass on" title="Bật/tắt nhạc (M)">♪</button>
+</div>
+<div id="toast" class="ui glass"></div>
+
+<div id="help" class="ui"></div>
+<button id="btnE" class="ui glass" hidden>Lên xe (E)</button>
+
+<div id="stickZone" class="ui touch-only">
+  <div id="stickBase" class="glass"><div id="stickKnob"></div></div>
+</div>
+<div id="pad" class="ui touch-only">
+  <button id="btnB" class="glass">Nhảy</button>
+  <button id="btnA" class="glass">Đu dây</button>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+// ============================================================================
+// 1. CONFIG — chỉnh ở đây khi model xuất từ Blender bị lệch
+// ============================================================================
+const CONFIG = {
+  // Nhân vật: models/hero.glb (Armature + animation idle, run, jump, swing, fall)
+  hero: {
+    url: 'models/hero.glb',
+    scale: 1,          // phóng to / thu nhỏ. Game coi nhân vật cao khoảng 1.8 m
+    rotY: 0,           // xoay quanh trục đứng (độ). Mặt nhân vật phải nhìn về +Z; quay lưng thì đặt 180
+    yOffset: 0,        // nâng/hạ (m) nếu chân bị lún hoặc lơ lửng
+    crossfade: 0.25,   // thời gian chuyển mượt giữa 2 animation (giây)
+    anim: { idle: 'idle', run: 'run', jump: 'jump', swing: 'swing', fall: 'fall' }, // tên clip trong file
+    colors: { suit: 0x1f9e8f, accent: 0xff8a3c, visor: 0xf4f1e8 },                  // màu model tạm
+  },
+  // Xe: models/car.glb (4 bánh là object riêng)
+  car: {
+    url: 'models/car.glb',
+    scale: 1,
+    rotY: 0,           // đầu xe phải hướng về +Z; ngược thì đặt 180, ngang thì 90 / -90
+    yOffset: 0,
+    wheels: { FL: 'wheel_FL', FR: 'wheel_FR', RL: 'wheel_RL', RR: 'wheel_RR' },
+    wheelRadius: 0.36, // bán kính bánh (m) sau khi đã nhân scale — quyết định bánh quay nhanh chậm
+    wheelAxis: 'x',    // trục ngang của xe trong file ('x' hoặc 'z'); bánh quay sai trục thì đổi
+    wheelSpinDir: 1,   // bánh quay ngược thì đặt -1
+    headlights: [[0.72, 0.62, 2.05], [-0.72, 0.62, 2.05]],  // vị trí đèn pha (x, y, z) theo thân xe
+    taillights: [[0.7, 0.72, -2.05], [-0.7, 0.72, -2.05]],
+    color: 0xe9e4dc,   // màu model tạm
+  },
+  city: { blocks: 10, seed: 20261114 },
+  dayLength: 300,      // một vòng ngày → đêm → ngày (giây)
+  startTime: 0,        // 0 = hoàng hôn, 0.3 = đêm, 0.8 = ban ngày
+  gravity: 26,
+  heroMove: { run: 9, jump: 10, airAccel: 12, wallClimb: 11, wallJump: 11 },
+  rope: { maxLen: 75, minLen: 8, minRise: 6, maxRise: 45, reel: 3, pump: 7, releaseBoost: 4 },
+  carMove: { accel: 16, maxSpeed: 42, flySpeed: 60, reverse: 12, grip: 5, flyGrip: 2.5, lift: 14, ceiling: 170 },
+  npc: { cars: 20, people: 40 },   // giảm nếu máy yếu
+  maxPixelRatio: 1.5,
+};
+
+// ============================================================================
+// 2. TIỆN ÍCH
+// ============================================================================
+const $ = (id) => document.getElementById(id);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const damp = (a, b, rate, dt) => lerp(a, b, 1 - Math.exp(-rate * dt)); // nội suy mượt không phụ thuộc fps
+// Bộ sinh số ngẫu nhiên có seed: thành phố lần nào mở cũng giống nhau
+function mulberry32(a) {
+  return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+const rng = mulberry32(CONFIG.city.seed);
+const rr = (a, b) => a + (b - a) * rng();
+const pick = (arr) => arr[Math.floor(rng() * arr.length)];
+const params = new URLSearchParams(location.search);
+const isTouch = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 1;
+document.body.classList.toggle('touch', isTouch);
+
+// Các hệ thống đăng ký hàm cập nhật vào đây; vòng lặp chính gọi theo thứ tự ORDER
+const sys = {};
+const ORDER = ['input', 'hero', 'car', 'npc', 'camera', 'env', 'audio', 'ui'];
+const game = (window.__game = { CONFIG, sys, time: CONFIG.startTime, night: 0 });
+
+// ============================================================================
+// 3. RENDERER, SCENE, SƯƠNG MÙ
+// ============================================================================
+const renderer = new THREE.WebGLRenderer({ canvas: $('scene'), antialias: !isTouch, powerPreference: 'high-performance' });
+let pixelRatio = Math.min(devicePixelRatio || 1, CONFIG.maxPixelRatio);
+renderer.setPixelRatio(pixelRatio);
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0xc9705e, 50, 520);
+const camera = new THREE.PerspectiveCamera(60, 1, 0.5, 1400);
+camera.position.set(40, 60, 150);
+function resize() {
+  renderer.setSize(innerWidth, innerHeight, false);
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+
+const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
+const sun = new THREE.DirectionalLight(0xffffff, 2);
+scene.add(hemi, sun, sun.target);
+
+// ============================================================================
+// 4. THÀNH PHỐ — lưới khu nhà, đường, vỉa hè, công viên, sông, cầu
+// ============================================================================
+const N = CONFIG.city.blocks;
+const BLOCK = 44, ROAD = 14, PITCH = BLOCK + ROAD;
+const HALF = (N * PITCH + ROAD) / 2;               // nửa bề rộng thành phố
+const CURB = 0.25;                                 // vỉa hè cao hơn mặt đường
+const roadC = (i) => -HALF + ROAD / 2 + i * PITCH; // tim đường thứ i (0..N)
+const blockMin = (k) => roadC(k) + ROAD / 2;       // mép khu nhà thứ k (0..N-1)
+const RIVER_ROW = Math.floor(N / 2);               // hàng khu nhà nhường chỗ cho sông
+const RZ0 = blockMin(RIVER_ROW), RZ1 = RZ0 + BLOCK;
+const RIVER_BED = -1.1, WATER_Y = -0.5;
+const BRIDGES = [2, Math.floor(N / 2), N - 2];     // các đường dọc có cầu qua sông
+const onBridge = (x) => BRIDGES.some((b) => Math.abs(x - roadC(b)) < ROAD / 2);
+
+// Độ cao mặt đất tại (x, z): lòng sông, mặt cầu, vỉa hè hoặc mặt đường
+function groundY(x, z) {
+  if (z > RZ0 && z < RZ1) return onBridge(x) ? 0 : RIVER_BED;
+  const u = x + HALF, v = z + HALF;
+  const k = Math.floor(u / PITCH), j = Math.floor(v / PITCH);
+  const inX = k >= 0 && k < N && u - k * PITCH > ROAD;
+  const inZ = j >= 0 && j < N && v - j * PITCH > ROAD;
+  return inX && inZ ? CURB : 0;
+}
+
+// Hộp va chạm AABB của toà nhà, chia theo khu nhà để chỉ xét vài hộp ở gần
+const blockBoxes = Array.from({ length: N * N }, () => []);
+const allBoxes = [];
+const _near = [];
+function nearBoxes(x, z, r) {
+  _near.length = 0;
+  const k0 = clamp(Math.floor((x - r + HALF) / PITCH), 0, N - 1), k1 = clamp(Math.floor((x + r + HALF) / PITCH), 0, N - 1);
+  const j0 = clamp(Math.floor((z - r + HALF) / PITCH), 0, N - 1), j1 = clamp(Math.floor((z + r + HALF) / PITCH), 0, N - 1);
+  for (let j = j0; j <= j1; j++) for (let k = k0; k <= k1; k++) {
+    const list = blockBoxes[j * N + k];
+    for (let i = 0; i < list.length; i++) _near.push(list[i]);
+  }
+  return _near;
+}
+
+const dummy = new THREE.Object3D();
+const col = new THREE.Color();
+const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+
+// Gom mọi khối hộp tĩnh (vỉa hè, cầu, cột đèn, thân cây…) vào MỘT InstancedMesh
+const props = [];
+const addBox = (x, y, z, sx, sy, sz, color) => props.push([x, y, z, sx, sy, sz, color]);
+const parks = new Set();
+const lamps = [];   // [x, z, hướng ra đường nx, nz]
+const trees = [];   // [x, z, cỡ]
+const buildings = [];
+
+(function buildCity() {
+  // --- mặt đất, sông -------------------------------------------------------
+  const groundMat = new THREE.MeshLambertMaterial({ color: 0x3b3944 });
+  for (const s of [-1, 1]) {
+    const edge = s < 0 ? RZ0 : RZ1, depth = 1000 - Math.abs(edge);
+    const g = new THREE.Mesh(new THREE.PlaneGeometry(2400, depth), groundMat);
+    g.rotation.x = -Math.PI / 2; g.position.set(0, 0, edge + s * depth / 2);
+    scene.add(g);
+    addBox(0, -0.8, edge - s * 0.25, 2400, 1.6, 0.5, 0x6a6470);            // kè sông
+  }
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(2400, BLOCK), new THREE.MeshBasicMaterial({ color: 0x335577 }));
+  water.rotation.x = -Math.PI / 2; water.position.set(0, WATER_Y, (RZ0 + RZ1) / 2);
+  scene.add(water); game.water = water;
+
+  // --- vạch tim đường và cầu ----------------------------------------------
+  const zMid = (RZ0 + RZ1) / 2, LINE = 0x9a8c6a;
+  for (let i = 0; i <= N; i++) {
+    addBox(0, 0.02, roadC(i), HALF * 2, 0.04, 0.25, LINE);
+    if (BRIDGES.includes(i)) {
+      addBox(roadC(i), 0.02, 0, 0.25, 0.04, HALF * 2, LINE);
+      addBox(roadC(i), -0.3, zMid, ROAD, 0.58, BLOCK + 1, 0x55505c);      // mặt cầu
+      for (const s of [-1, 1]) {
+        addBox(roadC(i) + s * (ROAD / 2 - 0.2), 0.55, zMid, 0.3, 1.1, BLOCK + 1, 0xb9a9a0);  // lan can
+        addBox(roadC(i), -1.2, zMid + s * 10, ROAD - 2, 1.4, 1.6, 0x6a6470);                // trụ cầu
+      }
+    } else {
+      const len = RZ0 + HALF;
+      addBox(roadC(i), 0.02, -HALF + len / 2, 0.25, 0.04, len, LINE);
+      addBox(roadC(i), 0.02, HALF - len / 2, 0.25, 0.04, len, LINE);
+    }
+  }
+
+  // --- từng khu nhà -------------------------------------------------------
+  const PALETTE = [0x8d7a9c, 0x6f6a94, 0xb08a86, 0xc9a58e, 0x7d8aa6, 0x9c6f7a, 0xa9998f, 0x5f6788, 0xd2b49a, 0x86708f];
+  const SIDE = 5;                                  // bề rộng vỉa hè quanh khu nhà
+  for (let j = 0; j < N; j++) for (let k = 0; k < N; k++) {
+    if (j === RIVER_ROW) continue;
+    const x0 = blockMin(k), z0 = blockMin(j), cx = x0 + BLOCK / 2, cz = z0 + BLOCK / 2;
+    const nearRiver = Math.abs(j - RIVER_ROW) === 1;
+    const isPark = rng() < (nearRiver ? 0.3 : 0.08);
+    if (isPark) parks.add(j * N + k);
+    addBox(cx, CURB / 2, cz, BLOCK, CURB, BLOCK, isPark ? 0x47704e : 0x6d6875);
+
+    // đèn đường ở giữa 4 cạnh, cây gần 4 góc
+    for (const [nx, nz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      lamps.push([cx + nx * (BLOCK / 2 - 0.8), cz + nz * (BLOCK / 2 - 0.8), nx, nz]);
+      for (const t of [-1, 1]) if (rng() < 0.75)
+        trees.push([cx + nx * (BLOCK / 2 - 2.2) + nz * t * 13, cz + nz * (BLOCK / 2 - 2.2) + nx * t * 13, rr(0.8, 1.1)]);
+    }
+    if (isPark) {
+      for (let i = 0; i < 16; i++) trees.push([cx + rr(-16, 16), cz + rr(-16, 16), rr(1, 1.7)]);
+      continue;
+    }
+
+    // chia khu thành 1, 2 hoặc 4 lô; càng gần trung tâm nhà càng cao
+    const central = 1 - Math.min(1, Math.hypot(cx, cz) / (HALF * 1.1));
+    const inner = BLOCK - SIDE * 2, t = rng();
+    const lots = t < 0.2 ? [[0, 0, inner, inner]]
+      : t < 0.5 ? (rng() < 0.5 ? [[-0.25, 0, inner / 2, inner], [0.25, 0, inner / 2, inner]] : [[0, -0.25, inner, inner / 2], [0, 0.25, inner, inner / 2]])
+      : [[-0.25, -0.25, inner / 2, inner / 2], [0.25, -0.25, inner / 2, inner / 2], [-0.25, 0.25, inner / 2, inner / 2], [0.25, 0.25, inner / 2, inner / 2]];
+    for (const [ox, oz, w, d] of lots) {
+      const sx = w - rr(1.5, 4), sz = d - rr(1.5, 4);
+      let h = lerp(13, 62, Math.pow(central, 1.4)) * rr(0.55, 1.35);
+      if (rng() < 0.05) h += rr(30, 55);                                   // vài toà chọc trời
+      h = Math.round(h / 3.5) * 3.5 + 1;
+      const bx = cx + ox * inner, bz = cz + oz * inner;
+      const box = { minX: bx - sx / 2, maxX: bx + sx / 2, minZ: bz - sz / 2, maxZ: bz + sz / 2, top: CURB + h };
+      blockBoxes[j * N + k].push(box); allBoxes.push(box);
+      buildings.push([bx, bz, sx, h, sz, pick(PALETTE)]);
+    }
+  }
+
+  // --- toà nhà: 1 InstancedMesh ------------------------------------------
+  const bMesh = new THREE.InstancedMesh(boxGeo, new THREE.MeshLambertMaterial(), buildings.length);
+  buildings.forEach(([x, z, sx, h, sz, c], i) => {
+    dummy.position.set(x, CURB + h / 2, z); dummy.rotation.set(0, 0, 0); dummy.scale.set(sx, h, sz); dummy.updateMatrix();
+    bMesh.setMatrixAt(i, dummy.matrix);
+    bMesh.setColorAt(i, col.setHex(c).multiplyScalar(rr(0.8, 1.05)));
+  });
+  scene.add(bMesh);
+
+  // --- cửa sổ: 1 InstancedMesh, sáng dần khi trời tối ---------------------
+  const CELL = 3.5, MAXWIN = isTouch ? 9000 : 20000;
+  let cells = 0;
+  for (const [, , sx, h, sz] of buildings) cells += 2 * (Math.floor(sx / CELL) + Math.floor(sz / CELL)) * Math.floor((h - 2) / CELL);
+  const prob = Math.min(0.5, MAXWIN / cells);
+  const WIN = [0xffd9a0, 0xffc070, 0xffe8c8, 0xffb060, 0xa8d8ff];
+  const winMat = new THREE.MeshBasicMaterial({ color: 0x333333 });
+  const wMesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(1.7, 1.9), winMat, Math.ceil(cells * prob * 1.15) + 16);
+  let wi = 0;
+  for (const [x, z, sx, h, sz] of buildings) {
+    const rows = Math.floor((h - 2) / CELL);
+    for (let f = 0; f < 4; f++) {                  // 4 mặt: +Z, +X, -Z, -X
+      const alongX = f % 2 === 0, w = alongX ? sx : sz, dOut = (alongX ? sz : sx) / 2 + 0.04, sgn = f < 2 ? 1 : -1;
+      const cols = Math.floor(w / CELL);
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+        if (rng() > prob || wi >= wMesh.count) continue;
+        const u = (c + 0.5 - cols / 2) * CELL, y = CURB + 3 + r * CELL;
+        dummy.position.set(alongX ? x + u : x + sgn * dOut, y, alongX ? z + sgn * dOut : z + u);
+        dummy.rotation.set(0, f * Math.PI / 2, 0); dummy.scale.set(1, 1, 1); dummy.updateMatrix();
+        wMesh.setMatrixAt(wi, dummy.matrix);
+        wMesh.setColorAt(wi++, col.setHex(pick(WIN)).multiplyScalar(rr(0.45, 1)));
+      }
+    }
+  }
+  wMesh.count = wi;
+  scene.add(wMesh); game.winMat = winMat;
+
+  // --- cây: thân là hộp (gom chung), tán là 1 InstancedMesh ---------------
+  const LEAF = [0x4f8a55, 0x5f9a5a, 0x3f7a58, 0xc9824a, 0xd9685e, 0x7aa35a];
+  const crown = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), new THREE.MeshLambertMaterial({ flatShading: true }), trees.length);
+  trees.forEach(([x, z, s], i) => {
+    const y0 = groundY(x, z);
+    addBox(x, y0 + 1.3 * s, z, 0.35, 2.6 * s, 0.35, 0x5a4638);
+    dummy.position.set(x, y0 + 3.6 * s, z); dummy.rotation.set(rng() * 3, rng() * 3, 0);
+    dummy.scale.set(2.1 * s, 2.3 * s * rr(0.85, 1.2), 2.1 * s); dummy.updateMatrix();
+    crown.setMatrixAt(i, dummy.matrix); crown.setColorAt(i, col.setHex(pick(LEAF)).multiplyScalar(rr(0.8, 1.1)));
+  });
+  scene.add(crown);
+
+  // --- đèn đường: cột (gom chung), bóng đèn và vệt sáng trên đường --------
+  const bulbMat = new THREE.MeshBasicMaterial({ color: 0x554433 });
+  const poolMat = new THREE.MeshBasicMaterial({ color: 0xffc27a, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
+  const bulbs = new THREE.InstancedMesh(new THREE.SphereGeometry(0.32, 8, 6), bulbMat, lamps.length);
+  const pools = new THREE.InstancedMesh(new THREE.CircleGeometry(5.5, 20).rotateX(-Math.PI / 2), poolMat, lamps.length);
+  lamps.forEach(([x, z, nx, nz], i) => {
+    addBox(x, CURB + 2.8, z, 0.18, 5.6, 0.18, 0x3a3644);
+    addBox(x + nx * 1.1, CURB + 5.55, z + nz * 1.1, nx ? 2.4 : 0.14, 0.14, nz ? 2.4 : 0.14, 0x3a3644);
+    dummy.rotation.set(0, 0, 0); dummy.scale.set(1, 1, 1);
+    dummy.position.set(x + nx * 2.3, CURB + 5.35, z + nz * 2.3); dummy.updateMatrix(); bulbs.setMatrixAt(i, dummy.matrix);
+    dummy.position.set(x + nx * 3.2, 0.05, z + nz * 3.2); dummy.updateMatrix(); pools.setMatrixAt(i, dummy.matrix);
+  });
+  scene.add(bulbs, pools); game.bulbMat = bulbMat; game.poolMat = poolMat;
+
+  // --- gom hộp tĩnh -------------------------------------------------------
+  const pMesh = new THREE.InstancedMesh(boxGeo, new THREE.MeshLambertMaterial(), props.length);
+  props.forEach(([x, y, z, sx, sy, sz, c], i) => {
+    dummy.position.set(x, y, z); dummy.rotation.set(0, 0, 0); dummy.scale.set(sx, sy, sz); dummy.updateMatrix();
+    pMesh.setMatrixAt(i, dummy.matrix); pMesh.setColorAt(i, col.setHex(c));
+  });
+  scene.add(pMesh);
+})();
+
+// ============================================================================
+// 9. TRỜI VÀ CHU KỲ NGÀY → ĐÊM
+// ============================================================================
+const skyMat = new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false, fog: false,
+  uniforms: { uTop: { value: new THREE.Color() }, uHor: { value: new THREE.Color() }, uSunCol: { value: new THREE.Color() }, uSunDir: { value: new THREE.Vector3(0, 1, 0) } },
+  vertexShader: `varying vec3 vDir; void main(){ vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `
+    uniform vec3 uTop, uHor, uSunCol, uSunDir; varying vec3 vDir;
+    void main(){
+      vec3 d = normalize(vDir);
+      vec3 c = mix(uHor, uTop, smoothstep(0.0, 0.6, d.y));
+      c = mix(c, uHor * 0.75, smoothstep(0.0, -0.3, d.y));
+      float s = max(dot(d, uSunDir), 0.0);
+      c += uSunCol * (smoothstep(0.9993, 0.9996, s) * 1.5 + pow(s, 14.0) * 0.4);   // đĩa mặt trời/trăng + quầng
+      gl_FragColor = vec4(c, 1.0);
+      #include <colorspace_fragment>
+    }`,
+});
+const sky = new THREE.Mesh(new THREE.SphereGeometry(1000, 24, 16), skyMat);
+sky.renderOrder = -2; scene.add(sky);
+
+const starPos = new Float32Array(500 * 3);
+for (let i = 0; i < 500; i++) {
+  const a = rng() * Math.PI * 2, e = Math.asin(rr(0.08, 1));
+  starPos.set([Math.cos(a) * Math.cos(e) * 950, Math.sin(e) * 950, Math.sin(a) * Math.cos(e) * 950], i * 3);
+}
+const stars = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(starPos, 3)),
+  new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, transparent: true, opacity: 0, fog: false, depthWrite: false }));
+stars.renderOrder = -1; scene.add(stars);
+
+// Các mốc trong ngày (t từ 0 đến 1), giữa các mốc thì nội suy.
+// elev = độ cao mặt trời (ban đêm là mặt trăng); night = mức sáng của đèn và cửa sổ
+const C = (h) => new THREE.Color(h);
+const KEYS = [
+  { t: 0.00, top: C(0x3b2a6b), hor: C(0xff8a4c), fog: C(0xc9705e), sun: C(0xffb070), sunI: 2.4, amb: 1.25, night: 0.25, elev: 0.09 }, // hoàng hôn
+  { t: 0.12, top: C(0x2a1f5c), hor: C(0xe0567a), fog: C(0x7c4a78), sun: C(0xff7a70), sunI: 1.0, amb: 1.0, night: 0.7, elev: 0.0 },   // chạng vạng
+  { t: 0.25, top: C(0x070b22), hor: C(0x1b2150), fog: C(0x141a3c), sun: C(0x8fa8ff), sunI: 0.5, amb: 0.8, night: 1, elev: 0.45 },   // đêm
+  { t: 0.55, top: C(0x070b22), hor: C(0x1b2150), fog: C(0x141a3c), sun: C(0x8fa8ff), sunI: 0.5, amb: 0.8, night: 1, elev: 0.3 },
+  { t: 0.65, top: C(0x40407a), hor: C(0xff9e8a), fog: C(0xb0808c), sun: C(0xffc0a0), sunI: 1.3, amb: 1.0, night: 0.45, elev: 0.05 }, // bình minh
+  { t: 0.75, top: C(0x4a78c8), hor: C(0xffd9b0), fog: C(0xc9c2c4), sun: C(0xfff0dc), sunI: 2.8, amb: 1.4, night: 0, elev: 0.6 },    // ban ngày
+  { t: 0.92, top: C(0x4a6fb8), hor: C(0xffc890), fog: C(0xcfae9c), sun: C(0xffdcae), sunI: 2.8, amb: 1.4, night: 0, elev: 0.3 },
+];
+KEYS.push({ ...KEYS[0], t: 1 });
+const env = { top: C(0), hor: C(0), fog: C(0), sun: C(0), sunDir: new THREE.Vector3() };
+function applyEnv(t) {
+  let i = 0; while (KEYS[i + 1].t < t) i++;
+  const a = KEYS[i], b = KEYS[i + 1], f = (t - a.t) / (b.t - a.t), L = (k) => lerp(a[k], b[k], f);
+  for (const k of ['top', 'hor', 'fog', 'sun']) env[k].lerpColors(a[k], b[k], f);
+  const night = (game.night = L('night')), e = L('elev') * Math.PI / 2;
+  env.sunDir.set(-Math.cos(e) * 0.8, Math.sin(e), -Math.cos(e) * 0.6).normalize();
+  skyMat.uniforms.uTop.value.copy(env.top); skyMat.uniforms.uHor.value.copy(env.hor);
+  skyMat.uniforms.uSunCol.value.copy(env.sun); skyMat.uniforms.uSunDir.value.copy(env.sunDir);
+  scene.fog.color.copy(env.fog); renderer.setClearColor(env.fog);
+  sun.color.copy(env.sun); sun.intensity = L('sunI');
+  sun.position.copy(env.sunDir).multiplyScalar(100);
+  hemi.color.copy(env.top).lerp(env.hor, 0.5); hemi.groundColor.copy(env.fog).multiplyScalar(0.6); hemi.intensity = L('amb') * 1.6;
+  stars.material.opacity = clamp(night * 1.6 - 0.7, 0, 1);
+  game.water.material.color.copy(env.top).lerp(env.hor, 0.45).multiplyScalar(0.8);
+  // đèn sáng dần khi trời tối
+  game.winMat.color.setScalar(lerp(0.16, 1.0, night));
+  game.bulbMat.color.setRGB(1, 0.82, 0.55).multiplyScalar(lerp(0.25, 1, night));
+  game.poolMat.opacity = night * 0.22;
+}
+game.setTime = (t) => { game.time = ((t % 1) + 1) % 1; applyEnv(game.time); };
+sys.env = (dt) => {
+  game.time = (game.time + dt / CONFIG.dayLength) % 1;
+  applyEnv(game.time);
+  sky.position.copy(camera.position); stars.position.copy(camera.position);
+};
+
+// camera tạm cho tới khi có nhân vật: lượn chậm quanh trung tâm
+sys.camera = (dt, now) => {
+  const a = now * 0.05;
+  camera.position.set(Math.sin(a) * 170, 70, Math.cos(a) * 170 - 40);
+  camera.lookAt(0, 20, -40);
+};
+
+// ============================================================================
+// 14. VÒNG LẶP CHÍNH + tự hạ độ phân giải khi fps thấp
+// ============================================================================
+const clock = new THREE.Clock();
+let fpsT = 0, fpsN = 0;
+game.fps = 60;
+function frame() {
+  requestAnimationFrame(frame);
+  const raw = clock.getDelta(), dt = Math.min(raw, 1 / 30), now = clock.elapsedTime;
+  for (const k of ORDER) sys[k]?.(dt, now);
+  renderer.render(scene, camera);
+  fpsT += raw; fpsN++;
+  if (fpsT >= 2) {
+    game.fps = fpsN / fpsT; fpsT = fpsN = 0;
+    if (game.fps < 45 && pixelRatio > 0.75 && !document.hidden) { pixelRatio = Math.max(0.75, pixelRatio - 0.25); renderer.setPixelRatio(pixelRatio); resize(); }
+  }
+}
+applyEnv(game.time);
+frame();
+game.ready = true;
+</script>
+</body>
+</html>
