@@ -18,10 +18,13 @@ for i in range(1, n + 1):
             continue
         e = re.search(r'r:embed="(rId\d+)"', b)
         ext = re.search(r'<a:ext cx="(\d+)" cy="(\d+)"', b)
+        off = re.search(r'<a:off x="(-?\d+)" y="(-?\d+)"', b)
+        ox, oy, ew, eh = int(off.group(1)), int(off.group(2)), int(ext.group(1)), int(ext.group(2))
+        hidden = ox >= 12192000 or oy >= 6858000 or ox + ew <= 0 or oy + eh <= 0
         kind = ("ảnh:" + tgt(e.group(1))) if m.group(1) == "pic" and e else "hình/chữ"
         if name in objs:
             print(f"  LỖI slide {i}: trùng tên {name}"); bad += 1
-        objs[name] = (kind, int(ext.group(1)) / int(ext.group(2)) if ext and int(ext.group(2)) else 0)
+        objs[name] = (kind, int(ext.group(1)) / int(ext.group(2)) if ext and int(ext.group(2)) else 0, hidden)
     if "p159:morph" not in x and i > 1:
         print(f"  LỖI slide {i}: thiếu chuyển cảnh Morph"); bad += 1
     if x.find("p:transition") > x.find("<p:timing") > 0:
@@ -32,6 +35,8 @@ for i in range(n - 1):
     shared = sorted(set(a) & set(b))
     notes = []
     for k in shared:
+        if a[k][2] and b[k][2]:
+            continue  # cả hai đều ngoài màn hình: không nhìn thấy
         if a[k][0] != b[k][0]:
             notes.append(f"{k}: KHÁC NỘI DUNG ({a[k][0]} -> {b[k][0]})"); bad += 1
         elif a[k][0].startswith("ảnh") and a[k][1] and b[k][1] and abs(a[k][1] / b[k][1] - 1) > 0.02:
