@@ -31,7 +31,7 @@ html,body{background:transparent}
 .capsL{font-family:Caps;font-weight:700;letter-spacing:.07em;line-height:1.15;
   background-image:linear-gradient(180deg,#FBEBB8 0%,#E6BD68 60%,#C99A44 100%);filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))}
 .head{font-family:Caps;font-weight:700;letter-spacing:.005em;line-height:1.2;
-  background-image:linear-gradient(180deg,#B07A24 0%,#8A5A18 50%,#63400F 100%);filter:drop-shadow(0 2px 2px rgba(80,50,10,.18))}
+  background-image:linear-gradient(180deg,#8A5A14 0%,#6B430E 50%,#4A2C07 100%);filter:drop-shadow(0 2px 2px rgba(80,50,10,.15))}
 .headL{font-family:Caps;font-weight:700;letter-spacing:.005em;line-height:1.2;
   background-image:linear-gradient(180deg,#FFF1C4 0%,#EBC676 70%,#D3A650 100%);filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))}
 .script{font-family:Script;line-height:1.25;padding:.2em .25em .3em;
@@ -75,6 +75,7 @@ Object.entries({
   h_danang: "Pháp tấn công Đà Nẵng", h_giadinh: "Pháp đánh chiếm Gia Định", h_namki: "Nhân dân Nam Kì nổi dậy",
   h_nhamtuat: "Hiệp ước Nhâm Tuất 1862", h_caugiay1: "Chiến thắng Cầu Giấy lần 1", h_caugiay2: "Chiến thắng Cầu Giấy lần 2",
   h_ketcuc: "Bốn hiệp ước, một kết cục", h_thaido: "Hai thái độ trái ngược", h_nhinlai: "Nhìn lại 1858 – 1884", h_nguon: "Nguồn ảnh",
+  h_phim1: "Từ Đà Nẵng vào Gia Định", h_phim2: "Bắc Kì và hai trận Cầu Giấy",
 }).forEach(([k, v]) => text(k, v, "head", 120));
 text("h_hue", "Hai hiệp ước cuối cùng", "headL", 120);
 text("t_camon", "CẢM ƠN", "caps", 260);

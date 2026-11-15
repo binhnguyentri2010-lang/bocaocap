@@ -24,8 +24,8 @@ const THEME = {
   },
 };
 // màu chữ (hex cố định, theo bản mẫu; INK đậm để dễ đọc trên nền giấy)
-const INK = "3E2A14", INK2 = "5A3E22", GOLD = "8E5E22", CREAM = "F3DCA0", PAPER = "F6EFE2", PINC = "B47A2A", MAROON = "7A2A22";
-const BODY = 24; // cỡ chữ nội dung
+const INK = "2A1A0A", INK2 = "4A3016", GOLD = "8E5E22", CREAM = "F3DCA0", PAPER = "F6EFE2", PINC = "B47A2A", MAROON = "7A2A22";
+const BODY = 28; // cỡ chữ nội dung
 
 const pres = new pptxgen();
 pres.layout = "LAYOUT_WIDE"; // 13.33 x 7.5 inch
@@ -53,18 +53,18 @@ function raw(s, file, x, y, w, h, name, alt, extra = {}) {
   s.addImage({ path: A(file), x, y, w, h, objectName: name, altText: alt || "", ...extra });
 }
 function kicker(s, t, x, y, o = {}) {
-  s.addText(t, { x, y, w: o.w || 7.2, h: 0.36, margin: 0, isTextBox: true, fontSize: 16, bold: true, charSpacing: 3,
+  s.addText(t, { x, y, w: o.w || 7.2, h: 0.4, margin: 0, isTextBox: true, fontSize: 18, bold: true, charSpacing: 3,
     color: o.color || GOLD, align: o.align || "left", objectName: o.name || "!!nhan" });
 }
 // tiêu đề đậm (ảnh chữ vàng nâu), dễ đọc từ xa
 function title(s, name, x, y, o = {}) {
-  return img(s, name, x - 0.12, y, o.maxW || 7.5, o.maxH || 1.3, { name: "!!ten", alt: o.alt || "", center: o.center });
+  return img(s, name, x - 0.12, y, o.maxW || 7.5, o.maxH || 1.3, { name: "tieude_" + name, alt: o.alt || "", center: o.center });
 }
 // các gạch đầu dòng chữ to; mỗi ý là một câu trọn vẹn để có thể đọc theo
 function bullets(s, items, x, y, w, h, o = {}) {
   s.addText(items.map((t, i) => ({ text: t, options: { bullet: { code: "25C6" }, breakLine: i < items.length - 1 } })),
     { x, y, w, h, margin: 0, isTextBox: true, fontSize: o.size || BODY, color: o.color || INK, valign: "top",
-      paraSpaceAfter: o.gap || 14, objectName: o.name || "noidung" });
+      paraSpaceAfter: o.gap || 12, objectName: o.name || "noidung" });
 }
 function body(s, t, x, y, w, h, o = {}) {
   s.addText(t, { x, y, w, h, margin: 0, isTextBox: true, fontSize: o.size || BODY, color: o.color || INK,
@@ -77,9 +77,9 @@ function pin(s, x, y, num, label, o = {}) {
     align: "center", valign: "middle", margin: 0, objectName: "!!pin" + (o.id || num),
     shadow: { type: "outer", color: "3C2410", opacity: 0.35, blur: 4, offset: 2, angle: 90 } });
   if (label) {
-    const w = 0.35 + label.length * 0.125;
-    s.addText(label, { x: o.left ? x - 0.34 - w : x + 0.34, y: y - 0.2, w, h: 0.4, margin: 0, isTextBox: true,
-      fill: { color: PAPER, transparency: 8 }, fontSize: 16, bold: true, color: INK, align: "center", valign: "middle",
+    const w = 0.4 + label.length * 0.14;
+    s.addText(label, { x: o.left ? x - 0.34 - w : x + 0.34, y: y - 0.23, w, h: 0.46, margin: 0, isTextBox: true,
+      fill: { color: PAPER, transparency: 5 }, fontSize: 18, bold: true, color: INK, align: "center", valign: "middle",
       objectName: "!!nhanpin" + (o.id || num) });
   }
 }
@@ -88,24 +88,24 @@ function photo(s, key, x, y, w, cap, o = {}) {
   const p = PH[key];
   if (!p) { console.warn("thiếu ảnh:", key); return y; }
   if (!used.includes(key)) used.push(key);
-  const m = 0.1, h = (w - 2 * m) / p.aspect, capH = cap ? 0.42 : 0;
+  const m = 0.1, h = (w - 2 * m) / p.aspect, capH = cap ? 0.5 : 0;
   s.addShape(pres.ShapeType.rect, { x, y, w, h: h + 2 * m + capH, fill: { color: "FDFAF2" }, line: { color: "E6DCC4", width: 0.75 },
     objectName: "khung_" + key, ...(o.rotate ? { rotate: o.rotate } : {}),
     shadow: { type: "outer", color: "3C2410", opacity: 0.35, blur: 8, offset: 3, angle: 90 } });
   s.addImage({ path: A(`ph_${key}.jpg`), x: x + m, y: y + m, w: w - 2 * m, h, objectName: o.name || "anh_" + key,
     altText: cap || p.title, ...(o.rotate ? { rotate: o.rotate } : {}) });
-  if (cap) s.addText(cap, { x: x + m, y: y + m + h, w: w - 2 * m, h: capH, margin: 0, isTextBox: true, fontSize: 13, italic: true,
+  if (cap) s.addText(cap, { x: x + m, y: y + m + h, w: w - 2 * m, h: capH, margin: 0, isTextBox: true, fontSize: 14,
     color: INK2, align: "center", valign: "middle", objectName: "chuthich_" + key, ...(o.rotate ? { rotate: o.rotate } : {}) });
   return y + h + 2 * m + capH;
 }
 // khung phim: viền trắng + video + tên phim
 function video(s, file, x, y, w, label) {
-  const m = 0.1, h = ((w - 2 * m) * 9) / 16;
-  s.addShape(pres.ShapeType.rect, { x, y, w, h: h + 2 * m + 0.42, fill: { color: "FDFAF2" }, line: { color: "E6DCC4", width: 0.75 },
+  const m = 0.12, h = ((w - 2 * m) * 9) / 16, lh = label ? 0.42 : 0;
+  s.addShape(pres.ShapeType.rect, { x, y, w, h: h + 2 * m + lh, fill: { color: "FDFAF2" }, line: { color: "E6DCC4", width: 0.75 },
     objectName: "khungphim", shadow: { type: "outer", color: "3C2410", opacity: 0.35, blur: 8, offset: 3, angle: 90 } });
   s.addMedia({ type: "video", path: A(file + ".mp4"), x: x + m, y: y + m, w: w - 2 * m, h,
     cover: "image/jpeg;base64," + fs.readFileSync(A(file + "_bia.jpg")).toString("base64"), objectName: "phim" });
-  s.addText(label, { x: x + m, y: y + m + h, w: w - 2 * m, h: 0.42, margin: 0, isTextBox: true, fontSize: 13, italic: true,
+  if (label) s.addText(label, { x: x + m, y: y + m + h, w: w - 2 * m, h: 0.42, margin: 0, isTextBox: true, fontSize: 15,
     color: INK2, align: "center", valign: "middle", objectName: "tenphim" });
 }
 
@@ -129,12 +129,12 @@ const READ = " Các gạch đầu dòng là câu trọn vẹn, có thể đọc 
 // side "L": chữ bên trái; "R": chữ bên phải. Trả về toạ độ cột ảnh.
 function content(s, o) {
   const left = o.side !== "R";
-  if (o.map) raw(s, left ? "panel_l.png" : "panel_r.png", left ? -0.4 : 3.95, 0, 9.8, H, "!!nen", "");
-  const tx = left ? 0.6 : 5.55;
-  kicker(s, o.kicker, tx, 0.45);
-  title(s, o.title, tx, 0.7, { alt: o.alt });
-  bullets(s, o.items, tx, 2.1, 7.2, 4.9);
-  return { x: left ? 8.35 : 0.4, w: 4.6 };
+  if (o.map) raw(s, left ? "panel_l.png" : "panel_r.png", left ? 0 : 3.35, 0, 10.0, H, left ? "!!nenTrai" : "!!nenPhai", "");
+  const tx = left ? 0.6 : 5.05;
+  kicker(s, o.kicker, tx, 0.42);
+  title(s, o.title, tx, 0.68, { alt: o.alt, maxW: 7.7 });
+  bullets(s, o.items, tx, 2.05, 7.75, 5.1);
+  return { x: left ? 8.75 : 0.4, w: 4.2 };
 }
 
 // =====================================================================
@@ -162,7 +162,7 @@ pres.addSection({ title: "Mở đầu" });
 {
   const s = slide("Giay", "Mở đầu");
   raw(s, "cloud_big.png", 10.1, -0.25, 3.6, 1.6, "!!mayLon", "");
-  const t = img(s, "t_mucluc", 0.55, 0.3, 4.4, 1.15, { name: "!!ten", alt: "MỤC LỤC" });
+  const t = img(s, "t_mucluc", 0.55, 0.3, 4.4, 1.15, { name: "tieude_mucluc", alt: "MỤC LỤC" });
   s.addShape(pres.ShapeType.line, { x: t.x + t.w + 0.1, y: 0.95, w: 4.0, h: 0, line: { color: "C89A44", width: 1.5 }, objectName: "duong" });
   raw(s, "cloud_orn.png", t.x + t.w + 4.15, 0.73, 1.39, 0.44, "!!mayNho", "");
   const parts = [
@@ -171,7 +171,9 @@ pres.addSection({ title: "Mở đầu" });
   ];
   parts.forEach(([n, m, label], i) => {
     const cx = 2.0 + i * 3.11;
-    img(s, m, cx, 1.6, 2.3, 2.3, { center: true, name: "!!cua" + n, alt: "Huy hiệu phần " + n });
+    const rd = ["ph_hangnon.png", "rd_02.png", "rd_03.png", "rd_04.png"][i];
+    if (fs.existsSync(A(rd))) raw(s, rd, cx - 1.05, 1.62, 2.1, 2.1, i === 0 ? "!!cua01" : "anhmuc" + n, "Ảnh minh hoạ phần " + n);
+    else img(s, m, cx, 1.6, 2.3, 2.3, { center: true, name: "anhmuc" + n, alt: "Huy hiệu phần " + n });
     img(s, "n" + n, cx, 3.8, 1.6, 0.95, { center: true, name: "so" + n, alt: n });
     const [a, b] = label.split("\n");
     s.addText([{ text: a, options: { bold: true, fontSize: 26, color: INK, breakLine: true } }, { text: b, options: { fontSize: 18, color: INK2 } }],
@@ -213,7 +215,7 @@ pres.addSection({ title: "Bối cảnh" });
     "Nhiều nước phương Đông lần lượt bị xâm lược.",
     "Việt Nam có vị trí quan trọng, giàu tài nguyên nên trở thành mục tiêu của thực dân Pháp.",
   ] });
-  photo(s, "saigon_morel", c.x - 0.1, 1.6, c.w + 0.2, "Tàu chiến Pháp năm 1859 (tranh A. Morel-Fatio)", { rotate: 2 });
+  photo(s, "saigon_morel", c.x - 0.1, 1.6, c.w + 0.2, "Tàu chiến Pháp, 1859 (tranh Morel-Fatio)", { rotate: 2 });
   raw(s, "cloud_side.png", 9.6, 5.9, 3.3, 1.25, "!!mayBen", "");
   s.addNotes("1:00. Nói về bối cảnh thế giới: vì sao tư bản phương Tây đi tìm thuộc địa, và vì sao Pháp nhắm tới Việt Nam." + READ + " Nội dung slide này là kiến thức chung, hãy đối chiếu sách giáo khoa.");
 }
@@ -223,7 +225,7 @@ pres.addSection({ title: "Bối cảnh" });
 // =====================================================================
 {
   const s = slide("Giay", "Bối cảnh");
-  const p = mapAt(s, 106.5, 16.0, 10.9, 3.75, 15);
+  const p = mapAt(s, 106.5, 16.0, 10.3, 3.75, 15);
   const c = content(s, { map: true, kicker: "BỐI CẢNH  ·  TRONG NƯỚC", title: "h_vietnam", alt: "Việt Nam trước năm 1858", items: [
     "Chế độ phong kiến nhà Nguyễn đang khủng hoảng, suy yếu.",
     "Triều đình thi hành chính sách “bế quan toả cảng”, cấm đạo Gia Tô.",
@@ -258,7 +260,7 @@ pres.addSection({ title: "Diễn biến" });
   const p = mapAt(s, 106.5, 16.0, 9.2, 3.75, 15);
   raw(s, "door_l.jpg", -6.9, 0, 6.67, H, "!!cuaTrai", "");
   raw(s, "door_r.jpg", 13.56, 0, 6.67, H, "!!cuaPhai", "");
-  raw(s, "panel_l.png", -1.6, 0, 8.19, H, "!!nen", "");
+  raw(s, "panel_l.png", -1.6, 0, 8.19, H, "!!nenTrai", "");
   kicker(s, "LƯỢC ĐỒ KHÁNG CHIẾN", 0.6, 0.45);
   title(s, "h_luocdo", 0.6, 0.7, { alt: "Ba mặt trận kháng chiến", maxW: 6.2 });
   bullets(s, [
@@ -279,16 +281,16 @@ pres.addSection({ title: "Diễn biến" });
 // =====================================================================
 {
   const s = slide("Giay", "Diễn biến");
-  mapAt(s, ...G.danang, 9.6, 3.3, 38);
+  mapAt(s, ...G.danang, 10.5, 4.9, 38);
   const c = content(s, { map: true, kicker: "MẶT TRẬN 1/3  ·  NĂM 1858", title: "h_danang", alt: "Pháp tấn công Đà Nẵng", items: [
     "Ngày 1/9/1858, liên quân Pháp – Tây Ban Nha nổ súng tấn công Đà Nẵng.",
     "Sự kiện này mở đầu cuộc chiến tranh xâm lược Việt Nam.",
     "Nhân dân phối hợp với quân đội triều đình anh dũng chống trả.",
     "Pháp bị cầm chân ở Đà Nẵng, không thể đánh nhanh thắng nhanh.",
   ] });
-  const b = photo(s, "danang", c.x, 0.5, c.w, "Pháp bắn phá Đà Nẵng, 1858 (tranh khắc Pháp)");
-  video(s, "phim1_danang_giadinh", c.x, Math.max(b + 0.25, 3.7), c.w, "Phim hoạt hoạ lược đồ (18 giây)");
-  s.addNotes("1:30 (gồm 18 giây phim). Lược đồ phóng vào Đà Nẵng. Kể sự kiện mở đầu, rồi bấm vào khung phim để phát." + READ + " Phim là hoạt hoạ lược đồ tự dựng, đường mũi tên chỉ minh hoạ hướng tiến quân. Có thể thay bằng phim tư liệu: chọn khung phim, bấm Delete, rồi Insert > Video > This Device. Ngày 1/9/1858 và ý “đánh nhanh thắng nhanh” là kiến thức chung, hãy đối chiếu sách giáo khoa.");
+  photo(s, "danang", c.x, 0.5, c.w, "Pháp bắn phá Đà Nẵng, 1858 (tranh khắc)");
+  pin(s, 10.5, 4.9, 1, "Đà Nẵng", { glow: true });
+  s.addNotes("1:10. Lược đồ phóng vào Đà Nẵng. Kể sự kiện mở đầu." + READ + " Ngày 1/9/1858 và ý “đánh nhanh thắng nhanh” là kiến thức chung, hãy đối chiếu sách giáo khoa.");
 }
 
 // =====================================================================
@@ -303,10 +305,23 @@ pres.addSection({ title: "Diễn biến" });
     "Pháp vấp phải sức kháng cự bền bỉ, phải đánh kéo dài.",
     "Sau đó Pháp mở rộng đánh chiếm các tỉnh miền Đông Nam Kì.",
   ] });
-  photo(s, "saigon2", c.x, 0.5, c.w, "Quân Pháp đánh thành Gia Định, 1859 (tranh khắc Pháp)");
+  photo(s, "saigon2", c.x, 0.5, c.w, "Pháp đánh thành Gia Định, 1859 (tranh khắc)");
   pin(s, 2.6, 5.35, 2, "Gia Định", { glow: true });
   s.addNotes("1:10. Lược đồ trượt từ Đà Nẵng xuống Gia Định: nhấn mạnh Pháp đổi hướng tấn công." + READ + " Ý cuối (Pháp mở rộng đánh chiếm miền Đông Nam Kì) là kiến thức chung, hãy đối chiếu sách giáo khoa.");
 }
+
+// =====================================================================
+// PHIM 1 (slide riêng)
+// =====================================================================
+function filmSlide(kick, titleName, alt, file, note) {
+  const s = slide("Giay", "Diễn biến");
+  kicker(s, kick, 0, 0.3, { w: W, align: "center" });
+  title(s, titleName, W / 2 + 0.12, 0.45, { center: true, maxH: 1.05, alt });
+  video(s, file, 1.9, 1.5, 9.53);
+  s.addNotes(note);
+}
+filmSlide("PHIM LƯỢC ĐỒ  ·  1858 – 1859", "h_phim1", "Từ Đà Nẵng vào Gia Định", "phim1_danang_giadinh",
+  "0:25 (phim dài 18 giây). Bấm vào khung phim để phát; phim không có tiếng, có thể nói đè: Pháp đánh Đà Nẵng năm 1858 rồi chuyển vào Gia Định năm 1859. Phim là hoạt hoạ lược đồ tự dựng, đường mũi tên chỉ minh hoạ hướng tiến quân. Có thể thay bằng phim tư liệu: chọn khung phim, bấm Delete, rồi Insert > Video > This Device.");
 
 // =====================================================================
 // 10. NAM KÌ NỔI DẬY
@@ -328,7 +343,7 @@ pres.addSection({ title: "Diễn biến" });
     else img(s, m, x + w / 2, 2.05, 2.5, 2.5, { center: true, name: "!!thuLinh" + i, alt: "Huy hiệu minh hoạ: " + name });
     s.addText(name, { x, y: 4.75, w, h: 0.5, margin: 0, isTextBox: true, fontSize: 24, bold: true, color: GOLD,
       align: "center", valign: "middle", objectName: "ten" + i });
-    s.addText(desc, { x: x + 0.05, y: 5.3, w: w - 0.1, h: 1.6, margin: 0, isTextBox: true, fontSize: 20, color: INK,
+    s.addText(desc, { x: x + 0.05, y: 5.3, w: w - 0.1, h: 1.6, margin: 0, isTextBox: true, fontSize: 22, color: INK,
       align: "center", valign: "top", objectName: "mota" + i });
   });
   s.addNotes("1:30. Giới thiệu lần lượt bốn thủ lĩnh, mỗi người khoảng 20 giây; có thể đọc theo chữ dưới mỗi ảnh. Bốn tên lấy từ sách giáo khoa; phần mô tả là kiến thức chung, hãy đối chiếu sách. Ảnh là tượng đài tưởng niệm ngày nay, không phải ảnh chụp nhân vật.");
@@ -348,9 +363,9 @@ pres.addSection({ title: "Diễn biến" });
     "Lúc đó phong trào kháng chiến của nhân dân đang diễn ra mạnh mẽ.",
     "Đây là bước nhượng bộ đầu tiên của triều Nguyễn.",
   ] });
-  photo(s, PH.nhamtuat ? "nhamtuat" : "ptgian", c.x, 0.5, c.w, PH.nhamtuat ? "Lễ kí Hiệp ước Nhâm Tuất tại Sài Gòn, 1862" : "Sứ bộ Phan Thanh Giản tại Pháp, 1863 (tranh khắc)");
-  s.addText("Ba tỉnh miền Đông Nam Kì", { x: 9.0, y: 6.75, w: 3.3, h: 0.4, margin: 0, isTextBox: true, fill: { color: PAPER, transparency: 8 },
-    fontSize: 16, bold: true, color: INK, align: "center", valign: "middle", objectName: "nhanvung" });
+  photo(s, PH.nhamtuat ? "nhamtuat" : "ptgian", c.x, 0.5, c.w, PH.nhamtuat ? "Lễ kí Hiệp ước Nhâm Tuất tại Sài Gòn, 1862" : "Sứ bộ Phan Thanh Giản tại Pháp, 1863");
+  s.addText("Ba tỉnh miền Đông Nam Kì", { x: 8.8, y: 6.75, w: 3.7, h: 0.46, margin: 0, isTextBox: true, fill: { color: PAPER, transparency: 5 },
+    fontSize: 18, bold: true, color: INK, align: "center", valign: "middle", objectName: "nhanvung" });
   s.addNotes("1:00. Vùng khoanh đỏ là phần đất bị nhượng (vị trí minh hoạ, không phải ranh giới chính xác). Nhấn mạnh sự trái ngược: dân đang đánh mạnh thì triều đình kí hiệp ước." + READ + " Đối chiếu điều khoản hiệp ước với sách giáo khoa.");
 }
 
@@ -365,12 +380,11 @@ pres.addSection({ title: "Diễn biến" });
     "Quân dân ta giành chiến thắng Cầu Giấy lần 1, gây cho Pháp nhiều thiệt hại.",
     "Nhưng năm 1874, triều đình lại kí với Pháp Hiệp ước Giáp Tuất.",
   ] });
-  photo(s, PH.caugiay ? "caugiay" : "caugiay2", c.x, 0.5, c.w, "Cầu Giấy (Hà Nội) cuối thế kỉ XIX – ảnh tư liệu");
+  photo(s, PH.caugiay ? "caugiay" : "caugiay2", c.x, 0.5, c.w, "Cầu Giấy (Hà Nội) cuối thế kỉ XIX");
   pin(s, 2.3, 5.6, 3, "Cầu Giấy (Hà Nội)", { glow: true });
-  img(s, "the_1874", 6.2, 4.85, 1.9, 2.2, { name: "!!the1", alt: "Thẻ: Hiệp ước Giáp Tuất 1874", rotate: -4 });
-  raw(s, "pl_cotco.png", 9.9, 4.8, 2.35, 2.23, "!!pl", "Cột cờ Hà Nội", { rotate: 3 });
-  s.addText("Cột cờ Hà Nội – di tích thành Hà Nội", { x: 8.55, y: 6.95, w: 4.4, h: 0.36, margin: 0, isTextBox: true, fontSize: 13, italic: true,
-    color: INK2, align: "center", valign: "middle", objectName: "chuthich_cotco" });
+  raw(s, "pl_cotco.png", 5.6, 5.15, 2.1, 2.0, "anh_cotco", "Cột cờ Hà Nội", { rotate: -3 });
+  s.addText("Cột cờ Hà Nội – di tích còn lại của thành Hà Nội", { x: 8.0, y: 5.7, w: 4.6, h: 0.9, margin: 0, isTextBox: true, fontSize: 18,
+    color: INK2, valign: "middle", objectName: "chuthich_cotco" });
   s.addNotes("1:20. Lược đồ bay từ Nam ra Bắc. Kể trận Cầu Giấy lần 1 rồi nêu nghịch lí: thắng trận nhưng triều đình vẫn kí Hiệp ước Giáp Tuất." + READ);
 }
 
@@ -379,19 +393,21 @@ pres.addSection({ title: "Diễn biến" });
 // =====================================================================
 {
   const s = slide("Giay", "Diễn biến");
-  mapAt(s, ...G.hanoi, 10.2, 3.3, 46);
+  mapAt(s, ...G.hanoi, 10.9, 5.5, 46);
   const c = content(s, { map: true, kicker: "MẶT TRẬN 3/3  ·  1882 – 1883", title: "h_caugiay2", alt: "Chiến thắng Cầu Giấy lần 2", items: [
     "Năm 1882, Pháp đánh Bắc Kì lần thứ hai.",
     "Năm 1883, quân dân ta lại thắng lớn ở Cầu Giấy.",
     "Hai chiến thắng Cầu Giấy làm quân Pháp hoang mang, thiệt hại nặng.",
   ] });
-  const b = photo(s, "caugiay2", c.x + 0.65, 0.45, 3.3, "Cầu Giấy khoảng năm 1884 – 1885");
-  video(s, "phim2_backi_caugiay", c.x, Math.max(b + 0.2, 3.7), c.w, "Phim hoạt hoạ lược đồ (18 giây)");
-  raw(s, "pl_thehuc1884.png", 1.0, 4.55, 3.3, 2.34, "!!pl", "Cầu Thê Húc (Hà Nội) năm 1884 – ảnh tư liệu", { rotate: -3 });
-  s.addText("Hà Nội năm 1884 – ảnh tư liệu", { x: 4.4, y: 6.3, w: 3.2, h: 0.36, margin: 0, isTextBox: true, fontSize: 13, italic: true,
-    color: INK2, align: "center", valign: "middle", objectName: "chuthich_thehuc" });
-  s.addNotes("1:20 (gồm 18 giây phim). Kể trận Cầu Giấy lần 2 rồi bấm vào khung phim để phát." + READ + " Phim là hoạt hoạ lược đồ tự dựng, đường mũi tên chỉ minh hoạ.");
+  photo(s, "caugiay2", c.x, 0.5, c.w, "Cầu Giấy khoảng năm 1884 – 1885");
+  pin(s, 10.9, 5.5, 3, "Cầu Giấy (Hà Nội)", { glow: true, left: true });
+  raw(s, "pl_thehuc1884.png", 0.9, 5.3, 2.5, 1.77, "anh_thehuc", "Cầu Thê Húc (Hà Nội) năm 1884 – ảnh tư liệu", { rotate: -3 });
+  s.addText("Hà Nội năm 1884 – ảnh tư liệu", { x: 3.7, y: 5.9, w: 3.6, h: 0.5, margin: 0, isTextBox: true, fontSize: 18,
+    color: INK2, valign: "middle", objectName: "chuthich_thehuc" });
+  s.addNotes("1:00. Kể trận Cầu Giấy lần 2." + READ + " Ảnh Cầu Thê Húc năm 1884 lấy từ bài Hà Nội trước của bạn.");
 }
+filmSlide("PHIM LƯỢC ĐỒ  ·  1873 – 1883", "h_phim2", "Bắc Kì và hai trận Cầu Giấy", "phim2_backi_caugiay",
+  "0:25 (phim dài 18 giây). Bấm vào khung phim để phát; phim không có tiếng, có thể nói đè: Pháp hai lần đánh ra Bắc Kì, quân dân ta hai lần thắng ở Cầu Giấy. Phim là hoạt hoạ lược đồ tự dựng, đường mũi tên chỉ minh hoạ.");
 
 // =====================================================================
 // 14. HAI HIỆP ƯỚC CUỐI (nền tối)
@@ -408,15 +424,8 @@ pres.addSection({ title: "Diễn biến" });
     "Năm 1883, triều đình kí Hiệp ước Hác-măng.",
     "Năm 1884, triều đình kí tiếp Hiệp ước Pa-tơ-nốt.",
     "Trong hơn 20 năm, triều Nguyễn đã lần lượt kí bốn hiệp ước với Pháp.",
-  ], 0.6, 2.1, 7.0, 3.0, { color: "FBF0D4" });
-  const stats = [["st_1883", "Hác-măng"], ["st_1884", "Pa-tơ-nốt"], ["st_4", "hiệp ước"]];
-  stats.forEach(([n, label], i) => {
-    const x = 0.6 + i * 2.5;
-    img(s, n, x - 0.1, 5.05, 2.3, 1.15, { name: "so" + i, alt: "" });
-    s.addText(label, { x, y: 6.2, w: 2.4, h: 0.45, margin: 0, isTextBox: true, fontSize: 20, color: CREAM, objectName: "nhanso" + i });
-  });
-  const b = photo(s, "thuanan", 8.35, 0.6, 4.6, "Sơ đồ Pháp bắn phá cửa Thuận An, 1883");
-  photo(s, "seal1884", 9.6, b + 0.3, 2.1, "Con dấu phái bộ Pháp ở Huế, 1884", { rotate: 3 });
+  ], 0.6, 2.05, 7.1, 5.0, { color: "FBF0D4" });
+  photo(s, "thuanan", 8.35, 0.6, 4.6, "Sơ đồ Pháp bắn phá cửa Thuận An, 1883");
   s.addNotes("1:00. Chỉ lướt nhanh hai hiệp ước cuối, để dành phần ý nghĩa cho phần Kết quả." + READ);
 }
 
@@ -451,7 +460,7 @@ pres.addSection({ title: "Kết quả" });
   bullets(s, [
     "Hiệp ước Pa-tơ-nốt đánh dấu sự đầu hàng hoàn toàn của triều Nguyễn trước thực dân Pháp.",
     "Kết thúc giai đoạn tồn tại của Nhà nước phong kiến Việt Nam độc lập.",
-  ], 1.9, 4.3, 9.6, 2.4, { size: 26, gap: 12 });
+  ], 1.8, 4.25, 9.8, 2.6, { size: 28, gap: 10 });
   s.addNotes("1:20. Slide Morph chính: cuộn giấy mở ra, bốn thẻ hiệp ước xếp hàng. Dừng 2–3 giây cho hiệu ứng chạy xong rồi mới nói. Đọc chậm hai ý kết quả trên slide, đây là phần giáo viên yêu cầu.");
 }
 
@@ -472,7 +481,7 @@ pres.addSection({ title: "Kết quả" });
     img(s, c.m, c.x + 0.45, 2.4, 1.25, 1.25, { name: "huyhieu" + i, alt: c.head });
     s.addText(c.head, { x: c.x + 1.85, y: 2.65, w: 3.8, h: 0.7, margin: 0, isTextBox: true, fontSize: 24, bold: true, charSpacing: 2,
       color: c.color, valign: "middle", objectName: "cot" + i });
-    bullets(s, c.items, c.x + 0.6, 3.85, 4.9, 2.9, { size: 22, gap: 10, name: "cot_y" + i });
+    bullets(s, c.items, c.x + 0.55, 3.8, 5.0, 3.1, { size: 24, gap: 8, name: "cot_y" + i });
   });
   s.addNotes("0:50. So sánh hai thái độ: nhân dân đánh đến cùng, triều đình nhượng bộ. Có thể đọc theo hai cột. Slide này không nằm trong yêu cầu ghi trên bảng; nếu tập thử bị quá 17 phút thì bỏ slide này trước.");
 }
@@ -484,7 +493,7 @@ pres.addSection({ title: "Tổng kết" });
 {
   const s = slide("Giay", "Tổng kết");
   const p = mapAt(s, 106.5, 16.0, 10.8, 3.75, 15);
-  raw(s, "panel_l.png", -0.4, 0, 9.0, H, "!!nen", "");
+  raw(s, "panel_l.png", 0, 0, 9.0, H, "!!nenTrai", "");
   kicker(s, "04  ·  TỔNG KẾT", 0.6, 0.45);
   title(s, "h_nhinlai", 0.6, 0.7, { alt: "Nhìn lại 1858 – 1884" });
   const ev = [["1858", "Pháp tấn công Đà Nẵng"], ["1862", "Hiệp ước Nhâm Tuất"], ["1874", "Hiệp ước Giáp Tuất"],
@@ -504,7 +513,7 @@ pres.addSection({ title: "Tổng kết" });
   stops.forEach(([x, y, n, k]) => pin(s, x, y, n, names[k], { id: k, left: k === "hue" }));
   raw(s, "parch_e.png", 0.35, 5.9, 8.3, 1.35, "!!giay9", "");
   s.addText("Câu hỏi: Vì sao nhân dân chiến đấu anh dũng mà Việt Nam vẫn rơi vào tay thực dân Pháp?", { x: 0.75, y: 6.02, w: 7.5, h: 1.1,
-    margin: 0, isTextBox: true, fontSize: 20, bold: true, color: INK, align: "center", valign: "middle", objectName: "cauhoi" });
+    margin: 0, isTextBox: true, fontSize: 22, bold: true, color: INK, align: "center", valign: "middle", objectName: "cauhoi" });
   s.addNotes("0:45. Nhắc lại năm mốc trong 20 giây; đường nét đứt nối bốn địa điểm theo thứ tự thời gian. Sau đó đọc câu hỏi ở mẩu giấy phía dưới cho cả lớp.");
 }
 
@@ -556,6 +565,7 @@ const MORPH =
 
 (async () => {
   await pres.writeFile({ fileName: OUT });
+  // (áp theme trước khi sửa XML)
   const { applyTheme } = require(process.env.PPTX_SKILL + "/scripts/apply_theme.js");
   await applyTheme(OUT, THEME);
   const JSZip = require("jszip");
@@ -570,6 +580,13 @@ const MORPH =
     xml = xml.replace("</p:clrMapOvr>", "</p:clrMapOvr>" + MORPH);
     zip.file(name, xml);
     n++;
+  }
+  // Morph chỉ được ghép các vật thể đặt tên "!!…"; mọi tên khác gắn thêm số slide cho khỏi trùng
+  for (const name of Object.keys(zip.files)) {
+    const m = name.match(/^ppt\/slides\/slide(\d+)\.xml$/);
+    if (!m) continue;
+    const xml = await zip.file(name).async("string");
+    zip.file(name, xml.replace(/(<p:cNvPr id="\d+" name=")([^"!][^"]*)"/g, `$1$2 · ${m[1]}"`));
   }
   const clean = new JSZip(); // chỉ chép file, bỏ các entry thư mục
   for (const [name, f] of Object.entries(zip.files)) if (!f.dir) clean.file(name, await f.async("nodebuffer"), { createFolders: false });
