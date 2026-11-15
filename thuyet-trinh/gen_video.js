@@ -9,35 +9,36 @@ const OUT = path.join(__dirname, "assets");
 const FONTS = process.env.FONTS, TMP = process.env.FRAMES;
 const f64 = (f) => "data:font/ttf;base64," + fs.readFileSync(path.join(FONTS, f)).toString("base64");
 const MAP = "data:image/jpeg;base64," + fs.readFileSync(path.join(OUT, "map.jpg")).toString("base64");
-const FPS = 24;
+const FPS = 30;
 
+// Máy quay đi qua các điểm bằng đường cong trơn (không dừng giữa chừng); phụ đề mỗi câu ≥ 4 giây, chồng mờ sang câu sau.
 const VIDEOS = {
   phim1_danang_giadinh: {
-    dur: 18,
+    dur: 22,
     title: ["1858 – 1859", "Từ Đà Nẵng vào Gia Định"],
-    cam: [[0, 110.2, 14.6, 0.5], [2, 110.2, 14.6, 0.5], [6, 108.9, 15.6, 0.95], [9, 108.9, 15.6, 0.95], [13.5, 107.6, 11.2, 0.9], [18, 107.4, 11.0, 0.95]],
-    years: [[0, "1858"], [9, "1859"]],
+    cam: [[0, 110.4, 14.5, 0.5], [3, 110.0, 14.9, 0.62], [7, 109.0, 15.6, 0.95], [10.5, 108.7, 15.1, 0.97], [15.5, 107.7, 11.5, 0.92], [22, 107.3, 10.9, 1.02]],
+    years: [[0, "1858"], [11.2, "1859"]],
     arrows: [
-      { t0: 2, t1: 5.5, pts: [[114.2, 12.2], [111.2, 14.6], [108.32, 16.1]] },
-      { t0: 9.3, t1: 13.5, pts: [[108.7, 16.0], [110.0, 14.0], [109.9, 11.6], [108.3, 10.0], [106.85, 10.55]] },
+      { t0: 2.5, t1: 6.5, pts: [[114.2, 12.2], [111.2, 14.6], [108.32, 16.1]] },
+      { t0: 11.4, t1: 16, pts: [[108.7, 16.0], [110.0, 14.0], [109.9, 11.6], [108.3, 10.0], [106.85, 10.55]] },
     ],
-    pins: [{ t: 5.2, lon: 108.22, lat: 16.07, label: "Đà Nẵng" }, { t: 13.2, lon: 106.7, lat: 10.78, label: "Gia Định" }],
-    bursts: [{ t0: 5.5, t1: 9, lon: 108.22, lat: 16.07 }, { t0: 13.5, t1: 18, lon: 106.7, lat: 10.78 }],
-    caps: [[2.2, 9, "Liên quân Pháp – Tây Ban Nha tấn công Đà Nẵng"], [9.3, 18, "Pháp chuyển hướng vào Nam, đánh chiếm Gia Định"]],
+    pins: [{ t: 6.2, lon: 108.22, lat: 16.07, label: "Đà Nẵng" }, { t: 15.7, lon: 106.7, lat: 10.78, label: "Gia Định" }],
+    bursts: [{ t0: 6.5, t1: 11.4, lon: 108.22, lat: 16.07 }, { t0: 16, t1: 22, lon: 106.7, lat: 10.78 }],
+    caps: [[2.4, 11.5, "Liên quân Pháp – Tây Ban Nha tấn công Đà Nẵng"], [11.3, 22, "Pháp chuyển hướng vào Nam, đánh chiếm Gia Định"]],
   },
   phim2_backi_caugiay: {
-    dur: 18,
+    dur: 26,
     title: ["1873 – 1883", "Bắc Kì và hai trận Cầu Giấy"],
-    cam: [[0, 106.9, 20.4, 1.1], [2, 106.9, 20.4, 1.1], [6, 106.35, 20.75, 1.9], [18, 106.3, 20.8, 2.0]],
-    years: [[0, "1873"], [9.6, "1874"], [11.5, "1882"], [14.2, "1883"]],
+    cam: [[0, 106.9, 20.4, 1.1], [4, 106.6, 20.6, 1.4], [8, 106.35, 20.75, 1.85], [26, 106.22, 20.84, 2.15]],
+    years: [[0, "1873"], [11.4, "1874"], [15.8, "1882"], [20.4, "1883"]],
     arrows: [
-      { t0: 2, t1: 5.5, pts: [[108.3, 19.6], [107.2, 20.45], [106.6, 20.8], [105.95, 21.0]] },
-      { t0: 11.6, t1: 14, pts: [[108.3, 19.9], [107.3, 20.6], [106.6, 20.95], [105.95, 21.07]], dash: true },
+      { t0: 2.5, t1: 6.3, pts: [[108.3, 19.6], [107.2, 20.45], [106.6, 20.8], [105.95, 21.0]] },
+      { t0: 16, t1: 19.8, pts: [[108.3, 19.9], [107.3, 20.6], [106.6, 20.95], [105.95, 21.07]], dash: true },
     ],
-    pins: [{ t: 4.8, lon: 105.85, lat: 21.03, label: "Hà Nội" }],
-    bursts: [{ t0: 6, t1: 9.4, lon: 105.8, lat: 21.03 }, { t0: 14.2, t1: 18, lon: 105.8, lat: 21.03 }],
-    caps: [[2.2, 6, "Pháp đánh ra Bắc Kì lần thứ nhất"], [6, 9.6, "Chiến thắng Cầu Giấy lần 1"],
-      [9.6, 11.5, "Triều đình kí Hiệp ước Giáp Tuất"], [11.6, 14.2, "Pháp đánh Bắc Kì lần thứ hai"], [14.2, 18, "Chiến thắng Cầu Giấy lần 2"]],
+    pins: [{ t: 5.8, lon: 105.85, lat: 21.03, label: "Hà Nội" }],
+    bursts: [{ t0: 7, t1: 11.4, lon: 105.8, lat: 21.03 }, { t0: 20.4, t1: 26, lon: 105.8, lat: 21.03 }],
+    caps: [[2.3, 6.9, "Pháp đánh ra Bắc Kì lần thứ nhất"], [6.7, 11.5, "Chiến thắng Cầu Giấy lần 1"],
+      [11.3, 15.9, "Triều đình kí Hiệp ước Giáp Tuất"], [15.7, 20.5, "Pháp đánh Bắc Kì lần thứ hai"], [20.3, 26, "Chiến thắng Cầu Giấy lần 2"]],
   },
 };
 
@@ -55,7 +56,8 @@ body{width:1280px;height:720px;overflow:hidden;background:#F1E6CC;position:relat
 #year{position:absolute;left:44px;top:26px;font-family:Caps;font-weight:700;font-size:92px;letter-spacing:.03em;
   background:linear-gradient(180deg,#E9C36E,#A36F24);-webkit-background-clip:text;color:transparent;filter:drop-shadow(0 3px 3px rgba(70,40,10,.35))}
 #cap{position:absolute;left:0;right:0;bottom:0;height:104px;background:linear-gradient(180deg,rgba(58,22,18,.0),rgba(58,22,18,.92) 38%);
-  display:flex;align-items:flex-end;justify-content:center;padding-bottom:20px;font-family:Serif;font-weight:700;font-size:38px;color:#FBEBC0;text-shadow:0 2px 4px rgba(0,0,0,.5)}
+  font-family:Serif;font-weight:700;font-size:38px;color:#FBEBC0;text-shadow:0 2px 4px rgba(0,0,0,.5)}
+#cap b{position:absolute;left:0;right:0;bottom:20px;text-align:center}
 #note{position:absolute;right:20px;top:18px;font-family:Serif;font-style:italic;font-size:20px;color:#7A5A2C}
 #title{position:absolute;inset:0;background:rgba(48,20,16,.9);display:flex;flex-direction:column;align-items:center;justify-content:center}
 #title .a{font-family:Caps;font-weight:700;font-size:120px;letter-spacing:.04em;background:linear-gradient(180deg,#FBEBB8,#D3A650);-webkit-background-clip:text;color:transparent}
@@ -65,7 +67,7 @@ body{width:1280px;height:720px;overflow:hidden;background:#F1E6CC;position:relat
 .pin span{position:absolute;left:24px;top:-22px;background:rgba(246,239,226,.9);padding:2px 12px;border-radius:4px}
 .burst{position:absolute;border-radius:50%;border:5px solid #C8372D}
 </style><body><div id="world"><img src="${MAP}"><svg id="svg" width="4800" height="2700"></svg></div>
-<div id="pins"></div><div id="vig"></div><div id="year"></div><div id="note">Sơ đồ minh hoạ</div><div id="cap"></div>
+<div id="pins"></div><div id="vig"></div><div id="year"></div><div id="note">Sơ đồ minh hoạ</div><div id="cap"><b></b><b></b></div>
 <div id="title"><div class="a">${v.title[0]}</div><div class="b">${v.title[1]}</div></div>
 <script>
 const V=${JSON.stringify(v)};
@@ -82,8 +84,10 @@ const paths=V.arrows.map(a=>{const p=a.pts.map(q=>P(q[0],q[1]));const out=[];
 function render(t){
   // máy quay
   const c=V.cam;let i=0;while(i<c.length-2&&t>=c[i+1][0])i++;
-  const x=ease((t-c[i][0])/(c[i+1][0]-c[i][0]));
-  const lon=lerp(c[i][1],c[i+1][1],x),lat=lerp(c[i][2],c[i+1][2],x),s=lerp(c[i][3],c[i+1][3],x);
+  const hd=c[i+1][0]-c[i][0],u=Math.min(1,Math.max(0,(t-c[i][0])/hd));
+  const m=(k,j)=>(k<=0||k>=c.length-1)?0:(c[k+1][j]-c[k-1][j])/(c[k+1][0]-c[k-1][0]);
+  const H=j=>{const u2=u*u,u3=u2*u;return (2*u3-3*u2+1)*c[i][j]+(u3-2*u2+u)*hd*m(i,j)+(-2*u3+3*u2)*c[i+1][j]+(u3-u2)*hd*m(i+1,j);};
+  const lon=H(1),lat=H(2),s=H(3);
   const [cx,cy]=P(lon,lat);const tx=640-cx*s,ty=360-cy*s;
   document.getElementById('world').style.transform='translate('+tx+'px,'+ty+'px) scale('+s+')';
   const S=(lo,la)=>{const [px,py]=P(lo,la);return [px*s+tx,py*s+ty];};
@@ -104,8 +108,10 @@ function render(t){
   document.getElementById('pins').innerHTML=h;
   // năm, phụ đề, bìa
   let y='';for(const q of V.years)if(t>=q[0])y=q[1];document.getElementById('year').textContent=y;
-  let cap='',co=0;for(const q of V.caps)if(t>=q[0]&&t<q[1]){cap=q[2];co=Math.min(ease((t-q[0])/0.4),ease((q[1]-t)/0.3+0.2));}
-  const ce=document.getElementById('cap');ce.textContent=cap;ce.style.opacity=cap?Math.max(co,0.0):0;
+  const ce=document.getElementById('cap'),bs=ce.children;
+  V.caps.forEach((q,k)=>{const o=Math.min(ease((t-q[0])/0.6),ease((q[1]-t)/0.6));const b=bs[k%2];
+    if(o>0||b.dataset.k==k){b.textContent=q[2];b.dataset.k=k;b.style.opacity=Math.max(0,o);}});
+  ce.style.opacity=ease((t-V.caps[0][0]+0.3)/0.5);
   document.getElementById('title').style.opacity=1-ease((t-1.3)/0.7);
 }
 </script>`;
@@ -128,7 +134,7 @@ function render(t){
     await page.screenshot({ path: path.join(OUT, name + "_bia.jpg"), type: "jpeg", quality: 88 });
     await page.close();
     execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-framerate", String(FPS), "-i", path.join(dir, "%04d.jpg"),
-      "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "21", "-movflags", "+faststart", path.join(OUT, name + ".mp4")]);
+      "-c:v", "libx264", "-profile:v", "main", "-g", String(FPS), "-r", String(FPS), "-pix_fmt", "yuv420p", "-crf", "21", "-movflags", "+faststart", path.join(OUT, name + ".mp4")]);
     console.log("OK", name, n, "khung hình");
   }
   await browser.close();

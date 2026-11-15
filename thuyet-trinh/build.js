@@ -539,12 +539,11 @@ pres.addSection({ title: "Tổng kết" });
   const s = slide("Giay", "Tổng kết");
   const p = mapAt(s, 106.5, 16.0, 10.8, 3.75, 15);
   raw(s, "panel_l.png", 0, 0, 9.0, H, "!!nenTrai", "");
-  kicker(s, "04  ·  TỔNG KẾT", 0.6, 0.45);
-  title(s, "h_nhinlai", 0.6, 0.7, { alt: "Nhìn lại 1858 – 1884" });
+  title(s, "h_nhinlai", 0.45, 0.25, { alt: "Nhìn lại 1858 – 1884", maxW: 8.2, maxH: 1.75 });
   const ev = [["1858", "Pháp tấn công Đà Nẵng"], ["1862", "Hiệp ước Nhâm Tuất"], ["1874", "Hiệp ước Giáp Tuất"],
     ["1883", "Hiệp ước Hác-măng"], ["1884", "Hiệp ước Pa-tơ-nốt"]];
   ev.forEach(([y, t], i) => {
-    const yy = 2.0 + i * 0.76;
+    const yy = 2.15 + i * 0.74;
     img(s, "y" + y, 0.45, yy - 0.12, 1.9, 0.95, { name: "nam" + y, alt: y });
     body(s, t, 2.15, yy, 5.4, 0.7, { valign: "middle", name: "sk" + y });
   });

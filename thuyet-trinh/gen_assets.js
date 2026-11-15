@@ -74,13 +74,17 @@ Object.entries({
   h_thegioi: "Thế giới giữa thế kỉ XIX", h_vietnam: "Việt Nam trước năm 1858", h_luocdo: "Ba mặt trận kháng chiến",
   h_danang: "Pháp tấn công Đà Nẵng", h_giadinh: "Pháp đánh chiếm Gia Định", h_namki: "Nhân dân Nam Kì nổi dậy",
   h_nhamtuat: "Hiệp ước Nhâm Tuất 1862", h_caugiay1: "Chiến thắng Cầu Giấy lần 1", h_caugiay2: "Chiến thắng Cầu Giấy lần 2",
-  h_ketcuc: "Bốn hiệp ước, một kết cục", h_thaido: "Hai thái độ trái ngược", h_nhinlai: "Nhìn lại 1858 – 1884", h_nguon: "Nguồn ảnh",
+  h_ketcuc: "Bốn hiệp ước, một kết cục", h_thaido: "Hai thái độ trái ngược", h_nguon: "Nguồn ảnh",
   h_phim1: "Từ Đà Nẵng vào Gia Định", h_phim2: "Bắc Kì và hai trận Cầu Giấy",
 }).forEach(([k, v]) => text(k, v, "head", 120));
 text("h_hue", "Hai hiệp ước cuối cùng", "headL", 120);
 text("t_camon", "CẢM ƠN", "caps", 260);
 [["st_1883", "1883"], ["st_1884", "1884"], ["st_4", "4"]].forEach(([k, v]) => text(k, v, "capsL", 170));
 ["1858", "1862", "1874", "1883", "1884"].forEach((y) => text("y" + y, y, "caps", 110));
+// tiêu đề nghệ thuật slide Tổng kết: chữ thư pháp + năm vàng ánh kim
+items.push({ name: "h_nhinlai", html: `<div style="display:flex;align-items:center;white-space:nowrap">
+  <span class="g script" style="font-size:190px">Nhìn lại</span>
+  <span class="g caps" style="font-size:130px;margin-left:10px">1858 – 1884</span></div>` });
 
 // huy hiệu tròn: nền giấy, viền vàng kép, biểu tượng nâu
 const medal = (name, ic) => items.push({ name, html: `<div style="width:420px;height:420px;border-radius:50%;
