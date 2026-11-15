@@ -13,10 +13,10 @@ const THEME = {
   headFontFace: "Cambria",
   bodyFontFace: "Calibri",
   colors: {
-    dk1: "0B1626", lt1: "F4E9C9", dk2: "1B3050", lt2: "9FB0C8",
-    accent1: "C8372D", accent2: "E2B354", accent3: "7A1F1A",
+    dk1: "14233A", lt1: "FFFFFF", dk2: "5A6880", lt2: "EEF1F6",
+    accent1: "C8372D", accent2: "A8650A", accent3: "7A1F1A",
     accent4: "2A4A78", accent5: "D98A3D", accent6: "6E8FB8",
-    hlink: "E2B354", folHlink: "9FB0C8",
+    hlink: "A8650A", folHlink: "5A6880",
   },
 };
 
@@ -25,15 +25,16 @@ pres.layout = "LAYOUT_WIDE"; // 13.33 x 7.5 inch
 pres.theme = { headFontFace: THEME.headFontFace, bodyFontFace: THEME.bodyFontFace };
 pres.title = "Kháng chiến chống thực dân Pháp (1858 – 1884)";
 const C = pres.SchemeColor;
-const BG = C.text1, CREAM = C.background1, LAND = C.text2, MUTED = C.background2;
+// nền sáng: BG = trắng, CREAM = màu chữ chính (xanh đen), LAND = nền thẻ nhạt, MUTED = chữ phụ
+const BG = C.background1, CREAM = C.text1, LAND = C.background2, MUTED = C.text2;
 const RED = C.accent1, GOLD = C.accent2;
 const HEAD = "+mj-lt";
 
 // ---------- Layouts ----------
-pres.defineSlideMaster({ title: "Bia", background: { color: THEME.colors.dk1 } });
+pres.defineSlideMaster({ title: "Bia", background: { color: THEME.colors.lt1 } });
 pres.defineSlideMaster({
   title: "Noi dung",
-  background: { color: THEME.colors.dk1 },
+  background: { color: THEME.colors.lt1 },
   slideNumber: { x: 12.3, y: 7.05, w: 0.5, h: 0.3, fontSize: 10, color: MUTED, align: "right" },
 });
 
@@ -107,7 +108,7 @@ function addCards(s, count, large = false) {
          { text: "Hiệp ước " + t.name, options: { fontSize: 16 } }]
       : [{ text: t.yr, options: { fontFace: HEAD, fontSize: 14, bold: true } }];
     s.addText(text, { ...box, shape: pres.ShapeType.roundRect, rectRadius: large ? 0.12 : 0.08,
-      fill: { color: last ? RED : CREAM }, color: last ? CREAM : BG, align: "center", valign: "middle",
+      fill: { color: last ? RED : CREAM }, color: BG, align: "center", valign: "middle",
       margin: 0, objectName: "!!hiepuoc_" + t.yr });
   }
 }
@@ -138,7 +139,7 @@ function addPoints(s, items, { x = 0.6, y = 2.05, w = 5.9, step = 1.35, size = 1
   items.forEach((it, i) => {
     const yy = y + i * step;
     s.addText(String(i + 1), { x, y: yy, w: 0.5, h: 0.5, shape: pres.ShapeType.ellipse,
-      fill: { color: RED }, color: CREAM, fontFace: HEAD, fontSize: 16, bold: true,
+      fill: { color: RED }, color: BG, fontFace: HEAD, fontSize: 16, bold: true,
       align: "center", valign: "middle", margin: 0, objectName: "so_" + (i + 1) });
     const runs = Array.isArray(it)
       ? [{ text: it[0], options: { bold: true, color: GOLD } }, { text: " " + it[1], options: {} }]
@@ -401,7 +402,7 @@ pres.addSection({ title: "Kết quả" });
     s.addShape(pres.ShapeType.roundRect, { x: c.x, y: 1.9, w: 5.9, h: 4.1, rectRadius: 0.12,
       fill: { color: LAND }, line: { color: LAND, width: 0 }, objectName: "cot_" + (i + 1) });
     s.addText(c.head, { x: c.x + 0.35, y: 2.15, w: 3.3, h: 0.3, margin: 0, isTextBox: true,
-      fontSize: 12, bold: true, color: c.color === RED ? CREAM : GOLD, charSpacing: 3, objectName: "cot_nhan_" + (i + 1) });
+      fontSize: 12, bold: true, color: c.color, charSpacing: 3, objectName: "cot_nhan_" + (i + 1) });
     s.addText(c.big, { x: c.x + 0.35, y: 2.55, w: 3.7, h: 0.9, margin: 0, isTextBox: true,
       fontFace: HEAD, fontSize: 24, bold: true, color: CREAM, valign: "top", objectName: "cot_lon_" + (i + 1) });
     s.addText(c.items.map((t, k) => ({ text: t, options: { bullet: true, breakLine: k < c.items.length - 1 } })),
